@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon name="station_storage_allocation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../ui/core/addon.xsd">
+    <environment type="menus">
+        <file name="ui/station_storage_allocation.lua" />
+        <dependency name="ego_detailmonitor" />
+        <dependency name="kuertee_ui_extensions" />
+    </environment>
+</addon>

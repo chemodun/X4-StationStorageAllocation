@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English -->
+<diff>
+    <add sel="/language">
+        <page id="1972092419" voice="no" title="Station Storage Allocation" descr="Station Storage Allocation">
+            <!-- mod identity -->
+            <t id="1">Storage Allocation</t>
+            <t id="2">Station Storage Allocation - shows per-type storage capacity and usage with expandable per-ware allocation. Edit mode enables percentage sliders to adjust per-ware limits.</t>
+            <!-- column headers -->
+            <t id="110">Ware</t>
+            <t id="111">Stock</t>
+            <t id="116">Stock %</t>
+            <t id="112">Limit</t>
+            <t id="113">Limit %</t>
+            <t id="114">Auto</t>
+            <!-- bottom buttons -->
+            <t id="1003">Save</t>
+            <t id="1004">Reset All</t>
+            <t id="1005">Edit</t>
+            <t id="1006">Cancel</t>
+            <!-- status / empty messages -->
+            <t id="1001">Select a player-owned station to view storage allocation.</t>
+            <t id="1002">No cargo storage modules found on this station.</t>
+            <!-- slider button fallback -->
+            <t id="1010">Set %</t>
+        </page>
+    </add>
+</diff>

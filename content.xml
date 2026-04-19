@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<content
+    id="ws_0000000000"
+    name="Station Storage Allocation"
+    author="Chem O`Dun"
+    version="90001"
+    date="2026-06-02"
+    save="false"
+    sync="false"
+    enabled="1"
+    description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows capacity and usage per storage type with expandable per-ware allocation. Supports editing per-ware storage limits via percentage sliders.">
+    <text language="44" name="Station Storage Allocation"
+        description="Adds a Storage Allocation tab to the info panel for player-owned stations. Shows capacity/usage per storage type with expandable per-ware allocation, auto-managed indicators, and percentage slider editing." />
+</content>

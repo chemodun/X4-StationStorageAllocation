@@ -50,6 +50,7 @@ ffi.cdef [[
   UniverseID  GetPlayerOccupiedShipID(void);
   bool        IsComponentClass(UniverseID componentid, const char* classname);
   void        SetFocusMapComponent(UniverseID holomapid, UniverseID componentid, bool resetplayerpan);
+  float       GetTextWidth(const char* const text, const char* const fontname, float fontsize);
 ]]
 
 -- Unique mode key for the info-panel tab strip (must not clash with other mods).
@@ -183,7 +184,7 @@ end
 -- Columns: 1=+/- button(fixed), 2=name(min 30%), 3=stock/used(12%),
 --          4=limit/cap(12%), 5=%(11%), 6=indicator/slider(23%)
 local function addInfoTable(inputframe, infoBorder)
-  local tableInfo = inputframe:addTable(8, ssa.isV9 and {
+  local tableInfo = inputframe:addTable(9, ssa.isV9 and {
     tabOrder          = 1,
     x                 = Helper.standardContainerOffset,
     width             = inputframe.properties.width - 2 * Helper.standardContainerOffset,
@@ -198,11 +199,17 @@ local function addInfoTable(inputframe, infoBorder)
   tableInfo:setColWidthPercent(2, 15)             -- ware name narrow part (40% of original)
   tableInfo:setColWidthMinPercent(3, 11)         -- ware name wide part (60%) / items label
   tableInfo:setColWidthPercent(4, 14)            -- stock m³
-  tableInfo:setColWidthPercent(5, 8)             -- stock %
-  tableInfo:setColWidthPercent(6, 14)            -- limit m³
-  tableInfo:setColWidthPercent(7, 7)             -- auto checkbox
-  tableInfo:setColWidthPercent(8, 8)             -- limit %
-  tableInfo:setDefaultBackgroundColSpan(1, 8)
+  -- % columns: sized to exactly fit "100.0%" at the table font size + left+right cell padding.
+  local pctColWidth = math.ceil(C.GetTextWidth("100.0%",
+      Helper.standardFont,
+      Helper.scaleFont(Helper.standardFont, config.mapFontSize)))
+      + 2 * Helper.scaleX(Helper.standardTextOffsetx)
+  tableInfo:setColWidth(5, pctColWidth)                              -- stock %
+  tableInfo:setColWidthPercent(6, 14)                                 -- limit m³
+  tableInfo:setColWidth(7, config.mapRowHeight)                       -- auto checkbox
+  tableInfo:setColWidth(8, pctColWidth - config.mapRowHeight)         -- limit % (narrow part)
+  tableInfo:setColWidth(9, config.mapRowHeight)                       -- focus button
+  tableInfo:setDefaultBackgroundColSpan(1, 9)
   tableInfo:setDefaultCellProperties("text", { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })
   tableInfo:setDefaultCellProperties("button", { height = config.mapRowHeight })
   return tableInfo
@@ -247,17 +254,33 @@ local function setupStorageSubmenuRows(tableInfo, station)
     fixed   = true,
     bgColor = not ssa.isV9 and Color["row_title_background"] or nil,
   })
-  if ssa.isV9 then
-    row[2]:setColSpan(7):createText(stationName,
-      { fontsize = Helper.headerRow1FontSize, color = titleColor })
-  else
-    row[2]:setColSpan(7):createText(stationName, Helper.headerRow1Properties)
-    row[2].properties.color = titleColor
+  -- Col 9: map-focus button in the last column.
+  row[9]:createButton({
+    width       = config.mapRowHeight,
+    height      = config.mapRowHeight,
+    cellBGColor = Color["row_background"],
+  }):setIcon("menu_center_selection", {
+    width  = config.mapRowHeight,
+    height = config.mapRowHeight,
+    y      = not ssa.isV9 and (Helper.headerRow1Height - config.mapRowHeight) / 2 or nil,
+  })
+  row[9].handlers.onClick = function()
+    C.SetFocusMapComponent(menu.holomap, menu.infoSubmenuObject, true)
+  end
+  -- Col 1-4: station name; background spans cols 1-8 (button cell has its own cellBGColor).
+  local nameProps = ssa.isV9 and { fontsize = Helper.headerRow1FontSize } or Helper.headerRow1Properties
+  row[1]:setBackgroundColSpan(8):setColSpan(4):createText(stationName, nameProps)
+  row[1].properties.color = titleColor
+  -- Col 5-8: station code right-aligned.
+  if isStation then
+    row[5]:setColSpan(4):createText(ffi.string(C.GetObjectIDCode(station)), nameProps)
+    row[5].properties.halign = "right"
+    row[5].properties.color  = titleColor
   end
 
   if not isStation then
     row = tableInfo:addRow(true, {})
-    row[1]:setColSpan(8):createText(ReadText(SSA_PAGE, 1001), { halign = "center", wordwrap = true })
+    row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1001), { halign = "center", wordwrap = true })
     return
   end
 
@@ -269,14 +292,14 @@ local function setupStorageSubmenuRows(tableInfo, station)
   row[5]:createText(ReadText(SSA_PAGE, 116), Helper.headerRowCenteredProperties)  -- %
   row[6]:createText(ReadText(SSA_PAGE, 112), Helper.headerRowCenteredProperties)  -- Limit, m³
   row[7]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
-  row[8]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
+  row[8]:setColSpan(2):createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
 
   -- ── collect storage type data ──
   local typesArray = collectTypeData(station)
 
   if #typesArray == 0 then
     row = tableInfo:addRow(true, {})
-    row[1]:setColSpan(8):createText(ReadText(SSA_PAGE, 1002), { halign = "center", wordwrap = true })
+    row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1002), { halign = "center", wordwrap = true })
     return
   end
 
@@ -309,8 +332,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
       ssa.activeSliderWare = nil
       menu.refreshInfoFrame()
     end
-    -- Cols 2-8: read-only capacity bar with type name label (vanilla storage style).
-    typeRow[2]:setColSpan(7):createSliderCell({
+    -- Cols 2-9: read-only capacity bar with type name label (vanilla storage style).
+    typeRow[2]:setColSpan(8):createSliderCell({
       height   = config.mapRowHeight,
       start    = typeData.spaceused,
       max      = math.max(1, typeData.capacity),
@@ -360,7 +383,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[4]:createText(fmt(stockM3), { halign = "right" })
           wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right" })
           wareRow[6]:createText(fmt(gameLimitM3), { halign = "right" })
-          wareRow[8]:createText(string.format("%.1f%%", gamePct), { halign = "right" })
+          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right" })
 
           -- Determine whether this ware can get an editable slider.
           local useSlider = (sliderCount < wareSliderBudget)
@@ -472,7 +495,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               pctColor = ColorText["text_negative"] or ""
             end
             local pctText = (pctColor ~= "") and (pctColor .. draftPctStr .. "\027X") or draftPctStr
-            sliderRow[8]:createText(pctText,
+            sliderRow[8]:setColSpan(2):createText(pctText,
               { halign = "right", fontsize = config.mapFontSize })
           else
             -- Over slider budget: button to force-assign a slider to this ware.
@@ -501,7 +524,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[4]:createText(fmt(stockM3), { halign = "right" })
           wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })
-          wareRow[8]:createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
+          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
           local autoX = (row[7]:getWidth() - config.mapRowHeight) / 2
           local capturedWare = wareData
           wareRow[7]:createCheckBox(wareData.isAuto, { active = true,
@@ -639,10 +662,12 @@ local function createStorageSubmenu(inputframe, instance)
 
   local tableInfo = addInfoTable(inputframe, infoBorder)
 
-  -- Pre-V9: show the tab title as a header row inside the table.
+  -- Pre-V9: show the parent panel title + tab title as header rows inside the table.
   if not ssa.isV9 then
     local row = tableInfo:addRow(false, { fixed = true, bgColor = Color["row_title_background"] })
-    row[1]:setColSpan(6):createText(ReadText(SSA_PAGE, 1), Helper.headerRowCenteredProperties)
+    row[1]:setColSpan(9):createText(ReadText(1001, 2427), Helper.headerRowCenteredProperties)
+    row = tableInfo:addRow(false, { fixed = true, bgColor = Color["row_title_background"] })
+    row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1), Helper.headerRowCenteredProperties)
   end
 
   setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)

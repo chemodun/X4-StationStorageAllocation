@@ -70,13 +70,26 @@ local config = nil
 
 -- Module state (persists across panel refreshes within the same session).
 local ssa = {
-  isV9             = C.GetGameVersion().major >= 9,
-  expandedType     = nil,   -- transport-type ID string currently expanded, or nil
+  isV9                = C.GetGameVersion().major >= 9,
+  expandedType        = nil,   -- transport-type ID string currently expanded, or nil
   editEnabled         = false, -- whether edit mode is active
   wasPausedBeforeEdit = false, -- game was already paused when we entered edit mode
-  ignoreStock         = false, -- when true: slider min=0, max=full capacity (allows setting limit below stock)
-  draftLimits      = {},    -- [ware_id] = new limit in units (pending, applied on Save)
-  activeSliderWare = nil,   -- ware that gets a slider when budget would be exceeded
+  ignoreStock         = false, -- when true: slider min=0, max=full capacity
+  draftLimits         = {},    -- [ware_id] = new limit in units (pending, applied on Save)
+  activeSliderWare    = nil,   -- ware that gets a slider when budget would be exceeded
+
+  -- *** Three-tier data cache (keyed by expanded station, cleared on switch/tab leave) ***
+  -- Tier 1: group + ware metadata — built once per station, never re-read during session.
+  --   groupCache = { stationStr, workforceSet = { [ware]=true },
+  --                  data = { [ware] = { name, transport, volume, icon, group } } }
+  -- Tier 2: limits — rebuilt after Save, Reset All, or Auto checkbox toggle.
+  --   limitsCache = { stationStr, data = { [ware] = { limit, isAuto } } }
+  -- Tier 3: stock (cargo table) — tick-gated in view mode; frozen in edit mode.
+  --   stockCache  = { stationStr, data = { [ware] = amount }, turnCounter }
+  groupCache          = nil,
+  limitsCache         = nil,
+  stockCache          = nil,
+  stockRefreshInterval = 3,   -- re-read cargo every N panel renders in view mode
 }
 
 -- ─── helpers ─────────────────────────────────────────────────────────────────
@@ -115,10 +128,17 @@ local function exitEditMode()
   ssa.ignoreStock         = false
   ssa.draftLimits         = {}
   ssa.activeSliderWare    = nil
+  ssa.stockCache          = nil   -- force fresh stock read on the next view render
   if not ssa.wasPausedBeforeEdit then
     Unpause()
   end
   ssa.wasPausedBeforeEdit = false
+end
+
+-- Invalidate the limits cache so the next collectWareData re-reads limits from the game.
+-- Call after any operation that changes stock limits: Save, Reset All, Auto checkbox toggle.
+local function invalidateLimitsCache()
+  ssa.limitsCache = nil
 end
 
 -- ─── data collection (lazy) ──────────────────────────────────────────────────
@@ -156,85 +176,146 @@ end
 --   2 = intermediate (produced AND consumed as module input)
 --   3 = resource     (not produced; consumed as module input OR by workforce)
 --   4 = trade        (in cargo / override; neither produced nor consumed)
+--
+-- Three-tier cache strategy (all tiers keyed by station string):
+--   Tier 1 (groupCache):  group + ware metadata; built once per station switch.
+--   Tier 2 (limitsCache): limit + isAuto; rebuilt when invalidateLimitsCache() is called.
+--   Tier 3 (stockCache):  cargo table; tick-gated in view mode (stockRefreshInterval);
+--                          frozen in edit mode (game is paused, stock cannot change).
 local function collectWareData(station, typeData)
-  local wareSet = {}  -- [ware] = group: 1=product, 2=intermediate, 3=resource, 4=trade
+  local stationStr = tostring(station)
 
-  local cargo = GetComponentData(station, "cargo") or {}
-  for ware in pairs(cargo) do
-    wareSet[ware] = 4  -- default trade; reclassified below
+  -- Clear all tiers when the station changes.
+  if not ssa.stockCache or ssa.stockCache.stationStr ~= stationStr then
+    ssa.groupCache  = nil
+    ssa.limitsCache = nil
+    ssa.stockCache  = nil
   end
 
+  -- ── Tier 3: stock (cargo) ──
+  local cargo
+  if ssa.editEnabled then
+    -- Game is paused — use whatever is cached; read once if first entry into edit mode.
+    if ssa.stockCache then
+      cargo = ssa.stockCache.data
+    else
+      cargo = GetComponentData(station, "cargo") or {}
+      ssa.stockCache = { stationStr = stationStr, data = cargo, turnCounter = 1 }
+    end
+  elseif not ssa.stockCache or ssa.stockCache.turnCounter >= ssa.stockRefreshInterval then
+    -- Refresh interval reached (or first render): read fresh cargo.
+    cargo = GetComponentData(station, "cargo") or {}
+    ssa.stockCache = { stationStr = stationStr, data = cargo, turnCounter = 1 }
+  else
+    -- Within interval: reuse cached cargo and increment counter.
+    ssa.stockCache.turnCounter = ssa.stockCache.turnCounter + 1
+    cargo = ssa.stockCache.data
+  end
+
+  -- Build ware list: cargo wares + override-only wares.
+  local wareSet = {}
+  for ware in pairs(cargo) do wareSet[ware] = true end
   local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
   if overrideCount and overrideCount > 0 then
     local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
     overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
     for i = 0, overrideCount - 1 do
-      local w = ffi.string(overrideBuf[i].ware)
-      if not wareSet[w] then wareSet[w] = 4 end
+      wareSet[ffi.string(overrideBuf[i].ware)] = true
     end
   end
 
-  -- Classify using SPO's production/consumption approach.
-  -- ignorestate=true: reflects station design, not current runtime state.
-  -- Note: GetContainerWareConsumption only covers module consumption, NOT
-  -- workforce consumption (food, medicine, etc.) — handled separately below.
-  for ware in pairs(wareSet) do
-    local isProduced = C.GetContainerWareProduction(station, ware, true) > 0
-    local isConsumed = C.GetContainerWareConsumption(station, ware, true) > 0
-    if isProduced and isConsumed then
-      wareSet[ware] = 2  -- intermediate
-    elseif isProduced then
-      wareSet[ware] = 1  -- product
-    elseif isConsumed then
-      wareSet[ware] = 3  -- resource
-    end
-    -- else stays 4 (trade) — workforce wares corrected below
-  end
-
-  -- Reclassify workforce-consumed wares (food, medicine, etc.) that are stored
-  -- in cargo but are not module inputs, so GetContainerWareConsumption returns 0
-  -- for them.  Any ware still tagged as trade (4) that appears in the workforce
-  -- resource list is a resource, not a trade ware.
-  if type(GetWorkForceRaceResources) == "function" then
-    local wfResourceInfos = GetWorkForceRaceResources(station)
-    if wfResourceInfos then
-      for _, ri in ipairs(wfResourceInfos) do
-        for _, resource in ipairs(ri.resources or {}) do
-          local ware = resource.ware
-          if wareSet[ware] == 4 then
-            wareSet[ware] = 3  -- resource
+  -- ── Tier 1: group + ware metadata ──
+  if not ssa.groupCache then
+    ssa.groupCache = { stationStr = stationStr, data = {}, workforceSet = {} }
+    -- Build workforce ware set once via a single batch API call.
+    if type(GetWorkForceRaceResources) == "function" then
+      local wfInfos = GetWorkForceRaceResources(station)
+      if wfInfos then
+        for _, ri in ipairs(wfInfos) do
+          for _, res in ipairs(ri.resources or {}) do
+            ssa.groupCache.workforceSet[res.ware] = true
           end
         end
       end
     end
   end
 
+  -- Classify and cache metadata for any wares not yet seen this session.
+  for ware in pairs(wareSet) do
+    if not ssa.groupCache.data[ware] then
+      local isProduced = C.GetContainerWareProduction(station, ware, true) > 0
+      local isConsumed = C.GetContainerWareConsumption(station, ware, true) > 0
+      local group
+      if isProduced and isConsumed then
+        group = 2  -- intermediate
+      elseif isProduced then
+        group = 1  -- product
+      elseif isConsumed then
+        group = 3  -- resource (module input)
+      elseif ssa.groupCache.workforceSet[ware] then
+        group = 3  -- resource (workforce-consumed: food, medicine, etc.)
+      else
+        group = 4  -- trade
+      end
+      local wareName, transport, volume, icon =
+        GetWareData(ware, "name", "transport", "volume", "icon")
+      ssa.groupCache.data[ware] = {
+        group     = group,
+        name      = wareName or ware,
+        transport = transport,
+        volume    = volume or 1,
+        icon      = (icon and icon ~= "") and icon or "solid",
+      }
+    end
+  end
+
+  -- ── Tier 2: limits ──
+  -- Build the full table on first access; add incremental entries for newly-seen wares.
+  if not ssa.limitsCache then
+    ssa.limitsCache = { stationStr = stationStr, data = {} }
+    for ware in pairs(wareSet) do
+      ssa.limitsCache.data[ware] = {
+        limit  = GetWareProductionLimit(station, ware) or 0,
+        isAuto = not HasContainerStockLimitOverride(station, ware),
+      }
+    end
+  else
+    for ware in pairs(wareSet) do
+      if not ssa.limitsCache.data[ware] then
+        ssa.limitsCache.data[ware] = {
+          limit  = GetWareProductionLimit(station, ware) or 0,
+          isAuto = not HasContainerStockLimitOverride(station, ware),
+        }
+      end
+    end
+  end
+
+  -- ── Assemble typeData.wares from the three cache tiers ──
+  -- displayLimit and allocPct are computed fresh each render (depend on live draftLimits).
   local cap = typeData.capacity
-  for ware, group in pairs(wareSet) do
-    local wareName, transport, volume, icon =
-      GetWareData(ware, "name", "transport", "volume", "icon")
-    if transport == typeData.id then
-      local vol          = volume or 1
-      local limit        = GetWareProductionLimit(station, ware) or 0
+  for ware in pairs(wareSet) do
+    local gd = ssa.groupCache.data[ware]
+    local ld = ssa.limitsCache.data[ware]
+    if gd and ld and gd.transport == typeData.id then
+      local vol          = gd.volume
+      local limit        = ld.limit
       local stock        = cargo[ware] or 0
-      local isAuto       = not HasContainerStockLimitOverride(station, ware)
       local displayLimit = ssa.draftLimits[ware] or limit
       local allocPct     = (cap > 0 and displayLimit > 0)
           and math.min(100, displayLimit * vol / cap * 100)
           or  0
-
       table.insert(typeData.wares, {
         id           = ware,
-        name         = wareName or ware,
-        icon         = (icon and icon ~= "") and icon or "solid",
-        transport    = transport,
+        name         = gd.name,
+        icon         = gd.icon,
+        transport    = gd.transport,
         volume       = vol,
         stock        = stock,
         limit        = limit,
-        isAuto       = isAuto,
+        isAuto       = ld.isAuto,
         allocPct     = allocPct,
         displayLimit = displayLimit,
-        group        = group,
+        group        = gd.group,
       })
     end
   end
@@ -458,7 +539,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local gameStockPct = (gameLimitM3 > 0)
               and math.min(100, stockM3 / gameLimitM3 * 100)
               or  0
-          local wareRow = tableInfo:addRow(true, {})
+          local wareRow = tableInfo:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
@@ -485,7 +566,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               or  math.floor((stockM3 + freeM3) / vol))
               or 0
 
-          local sliderRow = tableInfo:addRow(false, {})
+          local sliderRow = tableInfo:addRow(false, { bgColor = Color["row_background_unselectable"] })
 
           if useSlider then
             sliderCount = sliderCount + 1
@@ -599,7 +680,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local stockPct = (limitM3 > 0)
               and math.min(100, stockM3 / limitM3 * 100)
               or  0
-          local wareRow = tableInfo:addRow(true, {})
+          local wareRow = tableInfo:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
@@ -621,11 +702,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
               local currentLimit = GetWareProductionLimit(station, capturedWare.id)
               SetContainerStockLimitOverride(station, capturedWare.id, math.max(1, currentLimit))
             end
+            invalidateLimitsCache()
             menu.refreshInfoFrame()
           end
 
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
-          local subRow = tableInfo:addRow(false, {})
+          local subRow = tableInfo:addRow(false, { bgColor = Color["row_background_unselectable"] })
           subRow[2]:createText(ReadText(SSA_PAGE, 115),
             { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize, color = Color["text_inactive"] })
           subRow[4]:createText(fmt(wareData.stock),
@@ -680,6 +762,7 @@ local function addBottomButtons(tableButton, station)
       end
       ssa.draftLimits      = {}
       ssa.activeSliderWare = nil
+      invalidateLimitsCache()
       menu.refreshInfoFrame()
     end
 
@@ -694,6 +777,7 @@ local function addBottomButtons(tableButton, station)
           ClearContainerStockLimitOverride(station, ware)
         end
       end
+      invalidateLimitsCache()
       exitEditMode()
       menu.refreshInfoFrame()
     end
@@ -817,6 +901,10 @@ function ssa.onInfoSubMenuCreate(infoFrame, instance)
     if ssa.editEnabled then
       exitEditMode()
     end
+    -- Clear all caches so next entry starts clean.
+    ssa.groupCache  = nil
+    ssa.limitsCache = nil
+    ssa.stockCache  = nil
     return
   end
   createStorageSubmenu(infoFrame, instance)

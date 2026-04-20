@@ -1,6 +1,6 @@
 # Station Storage Allocation
 
-Adds a **Storage Allocation** tab to the info panel tab strip in the map menu for player-owned stations. Shows storage capacity and usage per type with expandable per-ware allocation, and lets you adjust per-ware storage limits without leaving the map.
+Adds a **Storage Allocation** tab to the info panel tab strip in the map menu for player-owned stations. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map.
 
 ## Features
 
@@ -27,7 +27,7 @@ Adds a **Storage Allocation** tab to the info panel tab strip in the map menu fo
 ## Installation
 
 - **Steam Workshop**: [Station Storage Allocation](https://steamcommunity.com/sharedfiles/filedetails/?id=0) - only for **Game version 8.00** with latest Steam version of the `UI Extensions and HUD` mod (version 80.43 from April 8).
-- **Nexus Mods**: [Station Storage Allocation](https://www.nexusmods.com/x4foundations/mods/0000)
+- **Nexus Mods**: [Station Storage Allocation](https://www.nexusmods.com/x4foundations/mods/2075)
 
 ## Usage
 
@@ -36,6 +36,9 @@ Open the map, select a player-owned station, and click the **Storage Allocation*
 ### Viewing allocation
 
 Each storage type row shows a capacity bar with the type name, total space used, and total capacity.
+
+![Storage Allocation Tab](docs/images/storage_allocation.png)
+
 Click `+` to expand a type and see per-ware rows:
 
 - **Stock m³ / %**: current stock and its share of the limit.
@@ -46,9 +49,16 @@ The **Auto All** button (bottom-left, view mode) clears all manual overrides for
 
 ### Edit mode
 
-Click **Edit** to enter edit mode (game pauses). A slider appears for each ware in the expanded type. Slide to adjust the allocation - other wares adjust proportionally to stay within capacity. The saved (game) limit is shown greyed-out above the slider for reference.
+Click **Edit** to enter edit mode (game pauses).
+
+![Edit Mode](docs/images/edit_mode.png)
+
+A slider appears for each ware in the expanded type. Slide to adjust the allocation - other wares adjust proportionally to stay within capacity. The saved (game) limit is shown greyed-out above the slider for reference.
 
 - **Ignore stock**: enables setting a limit below current stock. Auto-enabled when any ware's saved limit is already below its stock.
+
+![Edit Mode with Ignore Stock](docs/images/edit_mode_ignore_stock.png)
+
 - **Reset All**: removes all manual overrides on the station, restoring fully auto-managed limits.
 - **Save**: applies all slider values and exits edit mode (game resumes).
 - **Cancel**: discards all changes and exits edit mode (game resumes).
@@ -56,6 +66,8 @@ Click **Edit** to enter edit mode (game pauses). A slider appears for each ware 
 ### Extension options
 
 **Options Menu > Extension options > Station Storage Allocation**:
+
+![Extension options](docs/images/options.png)
 
 - **Stock cache refresh interval** (1-10, default 3): UI ticks before stock values are re-read from the game. Lower = more up-to-date, higher = less CPU usage.
 

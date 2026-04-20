@@ -19,6 +19,7 @@
             <t id="1004">Reset All</t>
             <t id="1005">Edit</t>
             <t id="1006">Cancel</t>
+            <t id="1007">Ignore stock (allow limits below current stock amount)</t>
             <!-- status / empty messages -->
             <t id="1001">Select a player-owned station to view storage allocation.</t>
             <t id="1002">No cargo storage modules found on this station.</t>

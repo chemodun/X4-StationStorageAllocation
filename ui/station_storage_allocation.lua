@@ -67,10 +67,11 @@ local config = nil
 -- Module state (persists across panel refreshes within the same session).
 local ssa = {
   isV9             = C.GetGameVersion().major >= 9,
-  expandedType     = nil, -- transport-type ID string currently expanded, or nil
+  expandedType     = nil,   -- transport-type ID string currently expanded, or nil
   editEnabled      = false, -- whether edit mode is active
-  draftLimits      = {}, -- [ware_id] = new limit in units (pending, applied on Save)
-  activeSliderWare = nil, -- ware that gets a slider when budget would be exceeded
+  ignoreStock      = false, -- when true: slider min=0, max=full capacity (allows setting limit below stock)
+  draftLimits      = {},    -- [ware_id] = new limit in units (pending, applied on Save)
+  activeSliderWare = nil,   -- ware that gets a slider when budget would be exceeded
 }
 
 -- ─── helpers ─────────────────────────────────────────────────────────────────
@@ -355,14 +356,18 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local useSlider = (sliderCount < wareSliderBudget)
               or (ssa.activeSliderWare == wareData.id)
 
-          -- min = ware's current stock (can't set limit below what's already stored)
-          -- max = ware's stock + all free space converted to items of this ware
-          local vol             = wareData.volume
-          local currentLimitM3  = math.floor(limitM3)           -- kept for % calc / color comparison
-          local currentLimitItems = wareData.displayLimit        -- slider start (items)
-          local minSelectItems    = wareData.stock               -- = floor(stockM3 / vol)
-          local maxSelectItems    = (vol > 0)
-              and math.floor((stockM3 + freeM3) / vol) or 0
+          -- min/max depend on ignoreStock mode:
+          --   normal: min = current stock (can't go below what's stored), max = stock + free space
+          --   ignoreStock: min = 0, max = full capacity (allows setting limit below stock)
+          local vol               = wareData.volume
+          local currentLimitM3    = math.floor(limitM3)    -- kept for % calc / color comparison
+          local currentLimitItems = wareData.displayLimit   -- slider start (items)
+          local minSelectItems    = ssa.ignoreStock and 0
+              or wareData.stock
+          local maxSelectItems    = (vol > 0) and (ssa.ignoreStock
+              and math.floor(typeData.capacity / vol)
+              or  math.floor((stockM3 + freeM3) / vol))
+              or 0
 
           local sliderRow = tableInfo:addRow(false, {})
 
@@ -395,17 +400,23 @@ local function setupStorageSubmenuRows(tableInfo, station)
               end
               local overflow = totalM3 - cap
               if overflow > 0 then
-                -- Build list of candidates: other wares that have slack above their stock.
+                -- The floor each candidate can be reduced to:
+                --   normal: candidate's current stock (can't go below what's stored)
+                --   ignoreStock: 0 (limit may be set below stock)
+                local function candidateFloorM3(wareEntry)
+                  return ssa.ignoreStock and 0 or (wareEntry.stock * wareEntry.volume)
+                end
+                -- Build list of candidates: other wares that have slack above their floor.
                 local candidates = {}
                 local totalSlack = 0
                 for _, wareEntry in ipairs(capturedType.wares) do
                   if wareEntry.id ~= capturedWare.id then
                     local wLimit   = ssa.draftLimits[wareEntry.id] or wareEntry.limit
                     local wLimitM3 = wLimit * wareEntry.volume
-                    local wStockM3 = wareEntry.stock * wareEntry.volume
-                    local slack    = math.max(0, wLimitM3 - wStockM3)
+                    local floorM3  = candidateFloorM3(wareEntry)
+                    local slack    = math.max(0, wLimitM3 - floorM3)
                     if slack > 0 then
-                      table.insert(candidates, { ware = wareEntry, limitM3 = wLimitM3, stockM3 = wStockM3, slack = slack })
+                      table.insert(candidates, { ware = wareEntry, limitM3 = wLimitM3, floorM3 = floorM3, slack = slack })
                       totalSlack = totalSlack + slack
                     end
                   end
@@ -413,17 +424,17 @@ local function setupStorageSubmenuRows(tableInfo, station)
                 if totalSlack >= overflow then
                   -- Enough slack: reduce each candidate proportionally.
                   for _, candidate in ipairs(candidates) do
-                    local reduce   = overflow * (candidate.slack / totalSlack)
-                    local newLimitM3 = math.max(candidate.stockM3, candidate.limitM3 - reduce)
+                    local reduce     = overflow * (candidate.slack / totalSlack)
+                    local newLimitM3 = math.max(candidate.floorM3, candidate.limitM3 - reduce)
                     local vol = candidate.ware.volume
                     ssa.draftLimits[candidate.ware.id] = (vol > 0) and math.floor(newLimitM3 / vol + 0.5) or 0
                   end
                 else
-                  -- Not enough slack in others: floor all candidates to their stock,
+                  -- Not enough slack in others: floor all candidates to their minimum,
                   -- then cap the changed ware for the remaining overflow.
                   for _, candidate in ipairs(candidates) do
                     local vol = candidate.ware.volume
-                    ssa.draftLimits[candidate.ware.id] = (vol > 0) and math.ceil(candidate.stockM3 / vol) or 0
+                    ssa.draftLimits[candidate.ware.id] = (vol > 0) and math.ceil(candidate.floorM3 / vol) or 0
                   end
                   local remaining = overflow - totalSlack
                   local vol = capturedWare.volume
@@ -512,9 +523,22 @@ local function setupStorageSubmenuRows(tableInfo, station)
 end
 
 -- Bottom button bar.
--- Edit mode:  [Cancel] [gap] [Reset All] [gap] [Save]  — equal-width buttons, half-width gaps.
+-- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All] [gap] [Save]
 -- View mode:  [                          ] [gap] [Edit] — Edit disabled if nothing is expanded.
 local function addBottomButtons(tableButton, station)
+  if ssa.editEnabled then
+    -- "Ignore stock" checkbox row: when checked, sliders allow limits below current stock.
+    local checkRow = tableButton:addRow("info_checkbox_ignorestock", { fixed = true })
+    checkRow[1]:createCheckBox(ssa.ignoreStock, { active = true,
+      height = config.mapRowHeight, width = config.mapRowHeight })
+    checkRow[1].handlers.onClick = function(_, checked)
+      ssa.ignoreStock = checked
+      menu.refreshInfoFrame()
+    end
+    checkRow[2]:setColSpan(4):createText(ReadText(SSA_PAGE, 1007),
+      { halign = "left", fontsize = config.mapFontSize })
+  end
+
   local row = tableButton:addRow("info_button_bottom", { fixed = true })
 
   if ssa.editEnabled then
@@ -523,6 +547,7 @@ local function addBottomButtons(tableButton, station)
         :setText(ReadText(SSA_PAGE, 1006), { halign = "center" })
     row[1].handlers.onClick = function()
       ssa.editEnabled      = false
+      ssa.ignoreStock      = false
       ssa.draftLimits      = {}
       ssa.activeSliderWare = nil
       menu.refreshInfoFrame()
@@ -557,6 +582,7 @@ local function addBottomButtons(tableButton, station)
         end
       end
       ssa.editEnabled      = false
+      ssa.ignoreStock      = false
       ssa.draftLimits      = {}
       ssa.activeSliderWare = nil
       menu.refreshInfoFrame()

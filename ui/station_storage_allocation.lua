@@ -321,10 +321,20 @@ local function setupStorageSubmenuRows(tableInfo, station)
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
       collectWareData(station, typeData)
+      -- Auto-enable ignoreStock if any ware has a limit of 0 (set below stock via a previous edit).
+      if not ssa.ignoreStock then
+        for _, wd in ipairs(typeData.wares) do
+          if wd.displayLimit == 0 then
+            ssa.ignoreStock = true
+            break
+          end
+        end
+      end
       local sliderCount = 0  -- tracks how many editable sliders have been placed
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
       local freeM3 = math.max(0, typeData.capacity - typeData.spaceused)
+      local iconWidth = menu.getShipIconWidth()
 
       for _, wareData in ipairs(typeData.wares) do
         -- Pre-compute m³ values.
@@ -375,7 +385,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
             sliderCount = sliderCount + 1
 
             sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
-              { halign = "left", fontsize = config.mapFontSize })
+              { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
             local capturedType = typeData
             sliderRow[3]:setColSpan(5):createSliderCell({
@@ -511,7 +521,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
           local subRow = tableInfo:addRow(false, {})
           subRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
-            { halign = "left", fontsize = config.mapFontSize })
+            { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize })
           subRow[4]:createText(dimColor .. fmt(wareData.stock) .. "\027X",
             { halign = "right", fontsize = config.mapFontSize })
           subRow[6]:createText(dimColor .. fmt(wareData.limit) .. "\027X",

@@ -8,10 +8,11 @@
             <t id="2">Station Storage Allocation - shows per-type storage capacity and usage with expandable per-ware allocation. Edit mode enables percentage sliders to adjust per-ware limits.</t>
             <!-- column headers -->
             <t id="110">Ware</t>
-            <t id="111">Stock</t>
-            <t id="116">Stock %</t>
-            <t id="112">Limit</t>
-            <t id="113">Limit %</t>
+            <t id="111">Stock, m³</t>
+            <t id="115">Items:</t>
+            <t id="116">%</t>
+            <t id="112">Limit, m³</t>
+            <t id="113">%</t>
             <t id="114">Auto</t>
             <!-- bottom buttons -->
             <t id="1003">Save</t>

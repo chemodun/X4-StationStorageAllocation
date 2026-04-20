@@ -67,10 +67,10 @@ local config = nil
 -- Module state (persists across panel refreshes within the same session).
 local ssa = {
   isV9             = C.GetGameVersion().major >= 9,
-  expandedType     = nil,    -- transport-type ID string currently expanded, or nil
-  editEnabled      = false,  -- whether edit mode is active
-  draftLimits      = {},     -- [ware_id] = new limit in units (pending, applied on Save)
-  activeSliderWare = nil,    -- ware that gets a slider when budget would be exceeded
+  expandedType     = nil, -- transport-type ID string currently expanded, or nil
+  editEnabled      = false, -- whether edit mode is active
+  draftLimits      = {}, -- [ware_id] = new limit in units (pending, applied on Save)
+  activeSliderWare = nil, -- ware that gets a slider when budget would be exceeded
 }
 
 -- ─── helpers ─────────────────────────────────────────────────────────────────
@@ -103,19 +103,19 @@ end
 -- Wares are sorted alphabetically; types are sorted alphabetically.
 local function collectStorageData(station)
   -- 1. Get transport types.
-  local ntypes = tonumber(C.GetNumCargoTransportTypes(station, true))
+  local typeCount = tonumber(C.GetNumCargoTransportTypes(station, true))
   local typeMap = {}  -- [transportId] → type record
 
-  if ntypes and ntypes > 0 then
-    local buf = ffi.new("StorageInfo[?]", ntypes)
-    ntypes = tonumber(C.GetCargoTransportTypes(buf, ntypes, station, true, false))
-    for i = 0, ntypes - 1 do
-      local tid = ffi.string(buf[i].transport)
-      typeMap[tid] = {
-        id        = tid,
-        name      = ffi.string(buf[i].name),
-        spaceused = tonumber(buf[i].spaceused),
-        capacity  = tonumber(buf[i].capacity),
+  if typeCount and typeCount > 0 then
+    local storageBuf = ffi.new("StorageInfo[?]", typeCount)
+    typeCount = tonumber(C.GetCargoTransportTypes(storageBuf, typeCount, station, true, false))
+    for i = 0, typeCount - 1 do
+      local transportId = ffi.string(storageBuf[i].transport)
+      typeMap[transportId] = {
+        id        = transportId,
+        name      = ffi.string(storageBuf[i].name),
+        spaceused = tonumber(storageBuf[i].spaceused),
+        capacity  = tonumber(storageBuf[i].capacity),
         wares     = {},
       }
     end
@@ -138,12 +138,12 @@ local function collectStorageData(station)
   for _, ware in ipairs(intermediatewares or {}) do wareSet[ware] = true end
 
   -- Wares with explicit stock-limit overrides (includes trade wares).
-  local nover = tonumber(C.GetNumContainerStockLimitOverrides(station))
-  if nover and nover > 0 then
-    local obuf = ffi.new("UIWareInfo[?]", nover)
-    nover = tonumber(C.GetContainerStockLimitOverrides(obuf, nover, station))
-    for i = 0, nover - 1 do
-      wareSet[ffi.string(obuf[i].ware)] = true
+  local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
+  if overrideCount and overrideCount > 0 then
+    local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
+    overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
+    for i = 0, overrideCount - 1 do
+      wareSet[ffi.string(overrideBuf[i].ware)] = true
     end
   end
 
@@ -180,9 +180,9 @@ local function collectStorageData(station)
 
   -- 4. Sort wares alphabetically within each type; sort types alphabetically.
   local typesArray = {}
-  for _, tdata in pairs(typeMap) do
-    table.sort(tdata.wares, function(a, b) return a.name < b.name end)
-    table.insert(typesArray, tdata)
+  for _, typeData in pairs(typeMap) do
+    table.sort(typeData.wares, function(a, b) return a.name < b.name end)
+    table.insert(typesArray, typeData)
   end
   table.sort(typesArray, function(a, b) return a.name < b.name end)
 
@@ -195,7 +195,7 @@ end
 -- Columns: 1=+/- button(fixed), 2=name(min 30%), 3=stock/used(12%),
 --          4=limit/cap(12%), 5=%(11%), 6=indicator/slider(23%)
 local function addInfoTable(inputframe, infoBorder)
-  local tableInfo = inputframe:addTable(7, ssa.isV9 and {
+  local tableInfo = inputframe:addTable(8, ssa.isV9 and {
     tabOrder          = 1,
     x                 = Helper.standardContainerOffset,
     width             = inputframe.properties.width - 2 * Helper.standardContainerOffset,
@@ -207,14 +207,15 @@ local function addInfoTable(inputframe, infoBorder)
     tabOrder = 1,
   })
   tableInfo:setColWidth(1, config.mapRowHeight)  -- +/- expand/collapse button
-  tableInfo:setColWidthMinPercent(2, 18)         -- ware / type name (variable)
-  tableInfo:setColWidthPercent(3, 14)            -- stock m³
-  tableInfo:setColWidthPercent(4, 8)             -- stock %
-  tableInfo:setColWidthPercent(5, 14)            -- limit m³
-  tableInfo:setColWidthPercent(6, 8)             -- limit %
-  tableInfo:setColWidthPercent(7, 7)             -- auto checkbox
-  tableInfo:setDefaultBackgroundColSpan(1, 7)
-  tableInfo:setDefaultCellProperties("text",   { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })
+  tableInfo:setColWidthPercent(2, 15)             -- ware name narrow part (40% of original)
+  tableInfo:setColWidthMinPercent(3, 11)         -- ware name wide part (60%) / items label
+  tableInfo:setColWidthPercent(4, 14)            -- stock m³
+  tableInfo:setColWidthPercent(5, 8)             -- stock %
+  tableInfo:setColWidthPercent(6, 14)            -- limit m³
+  tableInfo:setColWidthPercent(7, 8)             -- limit %
+  tableInfo:setColWidthPercent(8, 7)             -- auto checkbox
+  tableInfo:setDefaultBackgroundColSpan(1, 8)
+  tableInfo:setDefaultCellProperties("text", { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })
   tableInfo:setDefaultCellProperties("button", { height = config.mapRowHeight })
   return tableInfo
 end
@@ -259,35 +260,35 @@ local function setupStorageSubmenuRows(tableInfo, station)
     bgColor = not ssa.isV9 and Color["row_title_background"] or nil,
   })
   if ssa.isV9 then
-    row[2]:setColSpan(6):createText(stationName,
+    row[2]:setColSpan(7):createText(stationName,
       { fontsize = Helper.headerRow1FontSize, color = titleColor })
   else
-    row[2]:setColSpan(6):createText(stationName, Helper.headerRow1Properties)
+    row[2]:setColSpan(7):createText(stationName, Helper.headerRow1Properties)
     row[2].properties.color = titleColor
   end
 
   if not isStation then
     row = tableInfo:addRow(true, {})
-    row[1]:setColSpan(7):createText(ReadText(SSA_PAGE, 1001), { halign = "center", wordwrap = true })
+    row[1]:setColSpan(8):createText(ReadText(SSA_PAGE, 1001), { halign = "center", wordwrap = true })
     return
   end
 
   -- ── column headers ──
   row = tableInfo:addRow(false, { fixed = true })
   -- col 1 (button column) intentionally left empty
-  row[2]:createText(ReadText(SSA_PAGE, 110), Helper.headerRowCenteredProperties)  -- Ware
-  row[3]:createText(ReadText(SSA_PAGE, 111), Helper.headerRowCenteredProperties)  -- Stock m³
-  row[4]:createText(ReadText(SSA_PAGE, 116), Helper.headerRowCenteredProperties)  -- Stock %
-  row[5]:createText(ReadText(SSA_PAGE, 112), Helper.headerRowCenteredProperties)  -- Limit m³
-  row[6]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- Limit %
-  row[7]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
+  row[2]:setColSpan(2):createText(ReadText(SSA_PAGE, 110), Helper.headerRowCenteredProperties)  -- Ware
+  row[4]:createText(ReadText(SSA_PAGE, 111), Helper.headerRowCenteredProperties)  -- Stock, m³
+  row[5]:createText(ReadText(SSA_PAGE, 116), Helper.headerRowCenteredProperties)  -- %
+  row[6]:createText(ReadText(SSA_PAGE, 112), Helper.headerRowCenteredProperties)  -- Limit, m³
+  row[7]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
+  row[8]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
 
   -- ── collect storage data ──
   local typesArray = collectStorageData(station)
 
   if #typesArray == 0 then
     row = tableInfo:addRow(true, {})
-    row[1]:setColSpan(7):createText(ReadText(SSA_PAGE, 1002), { halign = "center", wordwrap = true })
+    row[1]:setColSpan(8):createText(ReadText(SSA_PAGE, 1002), { halign = "center", wordwrap = true })
     return
   end
 
@@ -296,12 +297,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
   local wareSliderBudget = SLIDER_MAX - #typesArray
 
   -- ── render each storage type ──
-  for _, tdata in ipairs(typesArray) do
-    local isExpanded = (ssa.expandedType == tdata.id)
+  for _, typeData in ipairs(typesArray) do
+    local isExpanded = (ssa.expandedType == typeData.id)
 
     -- Type header row: small +/- button in col 1, vanilla-style read-only slider
     -- (with type name as text overlay) spanning cols 2-6.
-    local typeRow = tableInfo:addRow("type_" .. tdata.id, {
+    local typeRow = tableInfo:addRow("type_" .. typeData.id, {
       fixed   = false,
       bgColor = Color["row_title_background"],
     })
@@ -315,125 +316,129 @@ local function setupStorageSubmenuRows(tableInfo, station)
       if isExpanded then
         ssa.expandedType = nil
       else
-        ssa.expandedType = tdata.id
+        ssa.expandedType = typeData.id
       end
       ssa.activeSliderWare = nil
       menu.refreshInfoFrame()
     end
-    -- Cols 2-7: read-only capacity bar with type name label (vanilla storage style).
-    typeRow[2]:setColSpan(6):createSliderCell({
+    -- Cols 2-8: read-only capacity bar with type name label (vanilla storage style).
+    typeRow[2]:setColSpan(7):createSliderCell({
       height   = config.mapRowHeight,
-      start    = tdata.spaceused,
-      max      = math.max(1, tdata.capacity),
+      start    = typeData.spaceused,
+      max      = math.max(1, typeData.capacity),
       readOnly = true,
       suffix   = ReadText(1001, 110),
-    }):setText(tdata.name, { fontsize = config.mapFontSize })
+    }):setText(typeData.name, { fontsize = config.mapFontSize })
 
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
       local sliderCount = 0  -- tracks how many editable sliders have been placed
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
-      local freeM3 = math.max(0, tdata.capacity - tdata.spaceused)
+      local freeM3 = math.max(0, typeData.capacity - typeData.spaceused)
 
-      for _, wareData in ipairs(tdata.wares) do
+      for _, wareData in ipairs(typeData.wares) do
         -- Pre-compute m³ values.
         local stockM3 = wareData.stock * wareData.volume
         local limitM3 = wareData.displayLimit * wareData.volume
         local dimColor = ColorText["text_inactive"] or ""
-        local m3Suffix = " " .. ReadText(1001, 110)  -- vanilla m³ text
 
         if ssa.editEnabled then
           -- ── Edit mode ──
           -- Row 1: shows GAME (saved) limit/%, not draft — draft is only in the slider row.
           local gameLimitM3 = wareData.limit * wareData.volume
-          local gamePct     = (tdata.capacity > 0 and gameLimitM3 > 0)
-              and math.min(100, gameLimitM3 / tdata.capacity * 100)
+          local gamePct     = (typeData.capacity > 0 and gameLimitM3 > 0)
+              and math.min(100, gameLimitM3 / typeData.capacity * 100)
               or  0
           local gameStockPct = (gameLimitM3 > 0)
               and math.min(100, stockM3 / gameLimitM3 * 100)
               or  0
           local wareRow = tableInfo:addRow(true, {})
-          wareRow[2]:createText(
+          wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
           )
-          wareRow[3]:createText(fmt(stockM3) .. m3Suffix,          { halign = "right" })
-          wareRow[4]:createText(string.format("%.2f%%", gameStockPct), { halign = "right" })
-          wareRow[5]:createText(fmt(gameLimitM3) .. m3Suffix,      { halign = "right" })
-          wareRow[6]:createText(string.format("%.2f%%", gamePct),  { halign = "right" })
-          wareRow[7]:createCheckBox(wareData.isAuto, { active = false,
-            height = config.mapRowHeight, width = config.mapRowHeight })
+          wareRow[4]:createText(fmt(stockM3), { halign = "right" })
+          wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right" })
+          wareRow[6]:createText(fmt(gameLimitM3), { halign = "right" })
+          wareRow[7]:createText(string.format("%.1f%%", gamePct), { halign = "right" })
+          local autoX = (row[8]:getWidth() - config.mapRowHeight) / 2
+          wareRow[8]:createCheckBox(wareData.isAuto, { active = false,
+            x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
 
           -- Determine whether this ware can get an editable slider.
           local useSlider = (sliderCount < wareSliderBudget)
               or (ssa.activeSliderWare == wareData.id)
 
-          -- min = ware's current stock m³ (can't set limit below what's already stored)
-          -- max = ware's stock m³ + total free space in this storage type
-          local currentLimitM3 = math.floor(limitM3)
-          local minSelectM3    = math.floor(stockM3)
-          local maxSelectM3    = math.floor(stockM3 + freeM3)
+          -- min = ware's current stock (can't set limit below what's already stored)
+          -- max = ware's stock + all free space converted to items of this ware
+          local vol             = wareData.volume
+          local currentLimitM3  = math.floor(limitM3)           -- kept for % calc / color comparison
+          local currentLimitItems = wareData.displayLimit        -- slider start (items)
+          local minSelectItems    = wareData.stock               -- = floor(stockM3 / vol)
+          local maxSelectItems    = (vol > 0)
+              and math.floor((stockM3 + freeM3) / vol) or 0
 
           local sliderRow = tableInfo:addRow(false, {})
 
           if useSlider then
             sliderCount = sliderCount + 1
 
+            sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
+              { halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
-            local capturedType = tdata
-            sliderRow[2]:setColSpan(4):createSliderCell({
+            local capturedType = typeData
+            sliderRow[3]:setColSpan(4):createSliderCell({
               height      = config.mapRowHeight,
-              min         = minSelectM3,
-              max         = maxSelectM3,
-              maxSelect   = maxSelectM3,
-              start       = currentLimitM3,
-              suffix      = m3Suffix,
+              min         = minSelectItems,
+              max         = maxSelectItems,
+              maxSelect   = maxSelectItems,
+              start       = currentLimitItems,
               readOnly    = false,
               forceArrows = true,
             })
-            sliderRow[2].handlers.onSliderCellActivated   = function() menu.noupdate = true end
-            sliderRow[2].handlers.onSliderCellDeactivated = function()
+            sliderRow[3].handlers.onSliderCellActivated   = function() menu.noupdate = true end
+            sliderRow[3].handlers.onSliderCellDeactivated = function()
               menu.noupdate = false
               -- Rebalance: ensure sum of all draft limits (in m³) stays ≤ capacity.
               local cap = capturedType.capacity
               -- Calculate current total draft m³ across all wares in this type.
               local totalM3 = 0
-              for _, w in ipairs(capturedType.wares) do
-                local wLimit = ssa.draftLimits[w.id] or w.limit
-                totalM3 = totalM3 + wLimit * w.volume
+              for _, wareEntry in ipairs(capturedType.wares) do
+                local wLimit = ssa.draftLimits[wareEntry.id] or wareEntry.limit
+                totalM3 = totalM3 + wLimit * wareEntry.volume
               end
               local overflow = totalM3 - cap
               if overflow > 0 then
                 -- Build list of candidates: other wares that have slack above their stock.
                 local candidates = {}
                 local totalSlack = 0
-                for _, w in ipairs(capturedType.wares) do
-                  if w.id ~= capturedWare.id then
-                    local wLimit   = ssa.draftLimits[w.id] or w.limit
-                    local wLimitM3 = wLimit * w.volume
-                    local wStockM3 = w.stock * w.volume
+                for _, wareEntry in ipairs(capturedType.wares) do
+                  if wareEntry.id ~= capturedWare.id then
+                    local wLimit   = ssa.draftLimits[wareEntry.id] or wareEntry.limit
+                    local wLimitM3 = wLimit * wareEntry.volume
+                    local wStockM3 = wareEntry.stock * wareEntry.volume
                     local slack    = math.max(0, wLimitM3 - wStockM3)
                     if slack > 0 then
-                      table.insert(candidates, { ware = w, limitM3 = wLimitM3, stockM3 = wStockM3, slack = slack })
+                      table.insert(candidates, { ware = wareEntry, limitM3 = wLimitM3, stockM3 = wStockM3, slack = slack })
                       totalSlack = totalSlack + slack
                     end
                   end
                 end
                 if totalSlack >= overflow then
                   -- Enough slack: reduce each candidate proportionally.
-                  for _, c in ipairs(candidates) do
-                    local reduce   = overflow * (c.slack / totalSlack)
-                    local newLimitM3 = math.max(c.stockM3, c.limitM3 - reduce)
-                    local vol = c.ware.volume
-                    ssa.draftLimits[c.ware.id] = (vol > 0) and math.floor(newLimitM3 / vol + 0.5) or 0
+                  for _, candidate in ipairs(candidates) do
+                    local reduce   = overflow * (candidate.slack / totalSlack)
+                    local newLimitM3 = math.max(candidate.stockM3, candidate.limitM3 - reduce)
+                    local vol = candidate.ware.volume
+                    ssa.draftLimits[candidate.ware.id] = (vol > 0) and math.floor(newLimitM3 / vol + 0.5) or 0
                   end
                 else
                   -- Not enough slack in others: floor all candidates to their stock,
                   -- then cap the changed ware for the remaining overflow.
-                  for _, c in ipairs(candidates) do
-                    local vol = c.ware.volume
-                    ssa.draftLimits[c.ware.id] = (vol > 0) and math.ceil(c.stockM3 / vol) or 0
+                  for _, candidate in ipairs(candidates) do
+                    local vol = candidate.ware.volume
+                    ssa.draftLimits[candidate.ware.id] = (vol > 0) and math.ceil(candidate.stockM3 / vol) or 0
                   end
                   local remaining = overflow - totalSlack
                   local vol = capturedWare.volume
@@ -445,16 +450,15 @@ local function setupStorageSubmenuRows(tableInfo, station)
               end
               menu.refreshInfoFrame()
             end
-            sliderRow[2].handlers.onSliderCellChanged = function(_, val)
-              local vol = capturedWare.volume
-              ssa.draftLimits[capturedWare.id] = (vol > 0) and math.floor(val / vol + 0.5) or 0
+            sliderRow[3].handlers.onSliderCellChanged = function(_, val)
+              ssa.draftLimits[capturedWare.id] = math.floor(val)
             end
-            -- Col 5: allocation % derived from current draft limit, coloured by change direction.
+            -- Col 7: allocation % derived from current draft limit, coloured by change direction.
             local cap = capturedType.capacity
             local draftPct = (cap > 0 and currentLimitM3 > 0)
                 and math.min(100, currentLimitM3 / cap * 100)
                 or 0
-            local draftPctStr = string.format("%.2f%%", draftPct)
+            local draftPctStr = string.format("%.1f%%", draftPct)
             local pctColor = ""
             if currentLimitM3 > gameLimitM3 then
               pctColor = ColorText["text_positive"] or ""
@@ -462,14 +466,16 @@ local function setupStorageSubmenuRows(tableInfo, station)
               pctColor = ColorText["text_negative"] or ""
             end
             local pctText = (pctColor ~= "") and (pctColor .. draftPctStr .. "\027X") or draftPctStr
-            sliderRow[6]:createText(pctText,
+            sliderRow[7]:createText(pctText,
               { halign = "right", fontsize = config.mapFontSize })
           else
             -- Over slider budget: button to force-assign a slider to this ware.
+            sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
+              { halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
-            sliderRow[2]:setColSpan(4):createButton({ height = config.mapRowHeight })
+            sliderRow[3]:setColSpan(4):createButton({ height = config.mapRowHeight })
                 :setText(ReadText(SSA_PAGE, 1010), { halign = "center" })
-            sliderRow[2].handlers.onClick = function()
+            sliderRow[3].handlers.onClick = function()
               ssa.activeSliderWare = capturedWare.id
               menu.refreshInfoFrame()
             end
@@ -482,22 +488,25 @@ local function setupStorageSubmenuRows(tableInfo, station)
               and math.min(100, stockM3 / limitM3 * 100)
               or  0
           local wareRow = tableInfo:addRow(true, {})
-          wareRow[2]:createText(
+          wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
           )
-          wareRow[3]:createText(fmt(stockM3) .. m3Suffix,           { halign = "right" })
-          wareRow[4]:createText(string.format("%.2f%%", stockPct),  { halign = "right" })
-          wareRow[5]:createText(fmt(limitM3) .. m3Suffix,           { halign = "right" })
-          wareRow[6]:createText(string.format("%.2f%%", wareData.allocPct), { halign = "right" })
-          wareRow[7]:createCheckBox(wareData.isAuto, { active = false,
-            height = config.mapRowHeight, width = config.mapRowHeight })
+          wareRow[4]:createText(fmt(stockM3), { halign = "right" })
+          wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
+          wareRow[6]:createText(fmt(limitM3), { halign = "right" })
+          wareRow[7]:createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
+          local autoX = (row[8]:getWidth() - config.mapRowHeight) / 2
+          wareRow[8]:createCheckBox(wareData.isAuto, { active = false,
+            x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
 
-          -- Row 2 (sub-row): dimmed item counts for stock and limit.
+          -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
           local subRow = tableInfo:addRow(false, {})
-          subRow[3]:createText(dimColor .. fmt(wareData.stock) .. "\027X",
+          subRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
+            { halign = "left", fontsize = config.mapFontSize })
+          subRow[4]:createText(dimColor .. fmt(wareData.stock) .. "\027X",
             { halign = "right", fontsize = config.mapFontSize })
-          subRow[5]:createText(dimColor .. fmt(wareData.limit) .. "\027X",
+          subRow[6]:createText(dimColor .. fmt(wareData.limit) .. "\027X",
             { halign = "right", fontsize = config.mapFontSize })
         end
       end  -- for each ware
@@ -526,12 +535,12 @@ local function addBottomButtons(tableButton, station)
     row[3]:createButton({ y = Helper.borderSize })
         :setText(ReadText(SSA_PAGE, 1004), { halign = "center" })
     row[3].handlers.onClick = function()
-      local nover = tonumber(C.GetNumContainerStockLimitOverrides(station))
-      if nover and nover > 0 then
-        local obuf = ffi.new("UIWareInfo[?]", nover)
-        nover = tonumber(C.GetContainerStockLimitOverrides(obuf, nover, station))
-        for i = 0, nover - 1 do
-          ClearContainerStockLimitOverride(station, ffi.string(obuf[i].ware))
+      local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
+      if overrideCount and overrideCount > 0 then
+        local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
+        overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
+        for i = 0, overrideCount - 1 do
+          ClearContainerStockLimitOverride(station, ffi.string(overrideBuf[i].ware))
         end
       end
       ssa.draftLimits      = {}
@@ -711,9 +720,9 @@ local function init()
     end
   end
 
-  menu.registerCallback("info_sub_menu_to_show",     ssa.onInfoSubMenuToShow)
+  menu.registerCallback("info_sub_menu_to_show", ssa.onInfoSubMenuToShow)
   menu.registerCallback("info_sub_menu_is_valid_for", ssa.onInfoSubMenuIsValidFor)
-  menu.registerCallback("info_sub_menu_create",       ssa.onInfoSubMenuCreate)
+  menu.registerCallback("info_sub_menu_create", ssa.onInfoSubMenuCreate)
 end
 
 Register_OnLoad_Init(init)

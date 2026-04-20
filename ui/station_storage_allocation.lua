@@ -91,6 +91,7 @@ local ssa = {
   limitsCache         = nil,
   stockCache          = nil,
   stockRefreshInterval = 3,   -- re-read cargo every N panel renders in view mode
+  lastStation         = nil,  -- tracks station across tab switches to detect station change
 }
 
 -- ─── helpers ─────────────────────────────────────────────────────────────────
@@ -944,16 +945,19 @@ end
 function ssa.onInfoSubMenuCreate(infoFrame, instance)
   local activeMode = (instance == "right") and menu.infoMode.right or menu.infoMode.left
   if activeMode ~= SSA_CATEGORY then
-    -- Switched away from the SSA tab while in edit mode — restore pause state without refreshing.
-    if ssa.editEnabled then
-      exitEditMode()
-    end
-    -- Clear all caches so next entry starts clean.
+    -- Another tab is being rendered — do NOT exit edit mode so the user can switch
+    -- back to SSA and continue editing.  The game remains paused until they Save or Cancel.
+    return
+  end
+  -- If the selected station changed while we were on another tab, discard the edit session.
+  local currentStation = menu.infoSubmenuObject
+  if ssa.editEnabled and currentStation ~= ssa.lastStation then
+    exitEditMode()
     ssa.groupCache  = nil
     ssa.limitsCache = nil
     ssa.stockCache  = nil
-    return
   end
+  ssa.lastStation = currentStation
   createStorageSubmenu(infoFrame, instance)
 end
 

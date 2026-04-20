@@ -981,16 +981,21 @@ local function init()
 
   config = type(menu.uix_getConfig) == "function" and menu.uix_getConfig() or {}
 
-  -- Insert the tab into config.infoCategories after "objectinfo".
+  -- Insert the tab into config.infoCategories.
+  -- Preferred anchor: after the SPO station tab ("chem_station_prod_overview"), if present.
+  -- Fallback anchor: after "objectinfo".
   if config.infoCategories then
     local objectInfoIdx = nil
+    local spoTabIdx     = nil
     local ssaTabFound   = false
     for i, entry in ipairs(config.infoCategories) do
-      if entry.category == "objectinfo"  then objectInfoIdx = i end
-      if entry.category == SSA_CATEGORY  then ssaTabFound   = true end
+      if entry.category == "objectinfo"              then objectInfoIdx = i end
+      if entry.category == "chem_station_prod_overview" then spoTabIdx  = i end
+      if entry.category == SSA_CATEGORY              then ssaTabFound   = true end
     end
-    if not ssaTabFound and objectInfoIdx then
-      table.insert(config.infoCategories, objectInfoIdx + 1, {
+    local anchorIdx = spoTabIdx or objectInfoIdx
+    if not ssaTabFound and anchorIdx then
+      table.insert(config.infoCategories, anchorIdx + 1, {
         category        = SSA_CATEGORY,
         name            = ReadText(SSA_PAGE, 1),
         icon            = "mapst_station_storage",

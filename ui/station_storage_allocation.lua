@@ -199,8 +199,8 @@ local function addInfoTable(inputframe, infoBorder)
   tableInfo:setColWidthPercent(4, 14)            -- stock m³
   tableInfo:setColWidthPercent(5, 8)             -- stock %
   tableInfo:setColWidthPercent(6, 14)            -- limit m³
-  tableInfo:setColWidthPercent(7, 8)             -- limit %
-  tableInfo:setColWidthPercent(8, 7)             -- auto checkbox
+  tableInfo:setColWidthPercent(7, 7)             -- auto checkbox
+  tableInfo:setColWidthPercent(8, 8)             -- limit %
   tableInfo:setDefaultBackgroundColSpan(1, 8)
   tableInfo:setDefaultCellProperties("text", { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })
   tableInfo:setDefaultCellProperties("button", { height = config.mapRowHeight })
@@ -267,8 +267,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
   row[4]:createText(ReadText(SSA_PAGE, 111), Helper.headerRowCenteredProperties)  -- Stock, m³
   row[5]:createText(ReadText(SSA_PAGE, 116), Helper.headerRowCenteredProperties)  -- %
   row[6]:createText(ReadText(SSA_PAGE, 112), Helper.headerRowCenteredProperties)  -- Limit, m³
-  row[7]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
-  row[8]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
+  row[7]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
+  row[8]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
 
   -- ── collect storage type data ──
   local typesArray = collectTypeData(station)
@@ -349,10 +349,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[4]:createText(fmt(stockM3), { halign = "right" })
           wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right" })
           wareRow[6]:createText(fmt(gameLimitM3), { halign = "right" })
-          wareRow[7]:createText(string.format("%.1f%%", gamePct), { halign = "right" })
-          local autoX = (row[8]:getWidth() - config.mapRowHeight) / 2
-          wareRow[8]:createCheckBox(wareData.isAuto, { active = false,
-            x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
+          wareRow[8]:createText(string.format("%.1f%%", gamePct), { halign = "right" })
 
           -- Determine whether this ware can get an editable slider.
           local useSlider = (sliderCount < wareSliderBudget)
@@ -376,7 +373,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               { halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
             local capturedType = typeData
-            sliderRow[3]:setColSpan(4):createSliderCell({
+            sliderRow[3]:setColSpan(5):createSliderCell({
               height      = config.mapRowHeight,
               min         = minSelectItems,
               max         = maxSelectItems,
@@ -454,14 +451,14 @@ local function setupStorageSubmenuRows(tableInfo, station)
               pctColor = ColorText["text_negative"] or ""
             end
             local pctText = (pctColor ~= "") and (pctColor .. draftPctStr .. "\027X") or draftPctStr
-            sliderRow[7]:createText(pctText,
+            sliderRow[8]:createText(pctText,
               { halign = "right", fontsize = config.mapFontSize })
           else
             -- Over slider budget: button to force-assign a slider to this ware.
             sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
               { halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
-            sliderRow[3]:setColSpan(4):createButton({ height = config.mapRowHeight })
+            sliderRow[3]:setColSpan(5):createButton({ height = config.mapRowHeight })
                 :setText(ReadText(SSA_PAGE, 1010), { halign = "center" })
             sliderRow[3].handlers.onClick = function()
               ssa.activeSliderWare = capturedWare.id
@@ -483,12 +480,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[4]:createText(fmt(stockM3), { halign = "right" })
           wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })
-          wareRow[7]:createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
-          local autoX = (row[8]:getWidth() - config.mapRowHeight) / 2
+          wareRow[8]:createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
+          local autoX = (row[7]:getWidth() - config.mapRowHeight) / 2
           local capturedWare = wareData
-          wareRow[8]:createCheckBox(wareData.isAuto, { active = true,
+          wareRow[7]:createCheckBox(wareData.isAuto, { active = true,
             x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
-          wareRow[8].handlers.onClick = function(_, checked)
+          wareRow[7].handlers.onClick = function(_, checked)
             if checked then
               -- Restore auto mode: remove the manual override.
               ClearContainerStockLimitOverride(station, capturedWare.id)

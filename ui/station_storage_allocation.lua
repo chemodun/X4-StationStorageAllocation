@@ -363,7 +363,6 @@ local function setupStorageSubmenuRows(tableInfo, station)
         -- Pre-compute m³ values.
         local stockM3 = wareData.stock * wareData.volume
         local limitM3 = wareData.displayLimit * wareData.volume
-        local dimColor = ColorText["text_inactive"] or ""
 
         if ssa.editEnabled then
           -- ── Edit mode ──
@@ -380,10 +379,10 @@ local function setupStorageSubmenuRows(tableInfo, station)
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
           )
-          wareRow[4]:createText(fmt(stockM3), { halign = "right" })
-          wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right" })
-          wareRow[6]:createText(fmt(gameLimitM3), { halign = "right" })
-          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right" })
+          wareRow[4]:createText(fmt(stockM3), { halign = "right", color = Color["text_inactive"] })
+          wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right", color = Color["text_inactive"] })
+          wareRow[6]:createText(fmt(gameLimitM3), { halign = "right", color = Color["text_inactive"] })
+          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right", color = Color["text_inactive"] })
 
           -- Determine whether this ware can get an editable slider.
           local useSlider = (sliderCount < wareSliderBudget)
@@ -407,7 +406,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           if useSlider then
             sliderCount = sliderCount + 1
 
-            sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
+            sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
               { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
             local capturedType = typeData
@@ -499,7 +498,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               { halign = "right", fontsize = config.mapFontSize })
           else
             -- Over slider budget: button to force-assign a slider to this ware.
-            sliderRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
+            sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
               { halign = "left", fontsize = config.mapFontSize })
             local capturedWare = wareData
             sliderRow[3]:setColSpan(5):createButton({ height = config.mapRowHeight })
@@ -543,12 +542,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
 
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
           local subRow = tableInfo:addRow(false, {})
-          subRow[2]:createText(dimColor .. ReadText(SSA_PAGE, 115) .. "\027X",
-            { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize })
-          subRow[4]:createText(dimColor .. fmt(wareData.stock) .. "\027X",
-            { halign = "right", fontsize = config.mapFontSize })
-          subRow[6]:createText(dimColor .. fmt(wareData.limit) .. "\027X",
-            { halign = "right", fontsize = config.mapFontSize })
+          subRow[2]:createText(ReadText(SSA_PAGE, 115),
+            { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize, color = Color["text_inactive"] })
+          subRow[4]:createText(fmt(wareData.stock),
+            { halign = "right", fontsize = config.mapFontSize, color = Color["text_inactive"] })
+          subRow[6]:createText(fmt(wareData.limit),
+            { halign = "right", fontsize = config.mapFontSize, color = Color["text_inactive"] })
         end
       end  -- for each ware
     end  -- if isExpanded

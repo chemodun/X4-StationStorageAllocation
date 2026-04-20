@@ -94,50 +94,47 @@ local function resolveInfoSubmenuObject()
   end
 end
 
--- ─── data collection ─────────────────────────────────────────────────────────
+-- ─── data collection (lazy) ──────────────────────────────────────────────────
 
--- Collect per-type storage information from a station.
--- Returns an array of type records:
---   { id, name, spaceused, capacity, wares = { { id, name, icon, transport,
---     volume, stock, limit, isAuto, allocPct, displayLimit } } }
--- Wares are sorted alphabetically; types are sorted alphabetically.
-local function collectStorageData(station)
-  -- 1. Get transport types.
+-- Collect transport-type header data from a station (no per-ware detail).
+-- Returns a sorted array of type records: { id, name, spaceused, capacity, wares = {} }
+-- Per-ware data is populated lazily by collectWareData only for the expanded type.
+local function collectTypeData(station)
   local typeCount = tonumber(C.GetNumCargoTransportTypes(station, true))
-  local typeMap = {}  -- [transportId] → type record
+  local typesArray = {}
 
   if typeCount and typeCount > 0 then
     local storageBuf = ffi.new("StorageInfo[?]", typeCount)
     typeCount = tonumber(C.GetCargoTransportTypes(storageBuf, typeCount, station, true, false))
     for i = 0, typeCount - 1 do
-      local transportId = ffi.string(storageBuf[i].transport)
-      typeMap[transportId] = {
-        id        = transportId,
+      table.insert(typesArray, {
+        id        = ffi.string(storageBuf[i].transport),
         name      = ffi.string(storageBuf[i].name),
         spaceused = tonumber(storageBuf[i].spaceused),
         capacity  = tonumber(storageBuf[i].capacity),
         wares     = {},
-      }
+      })
     end
+    table.sort(typesArray, function(a, b) return a.name < b.name end)
   end
 
-  if not next(typeMap) then return {} end
+  return typesArray
+end
 
-  -- 2. Collect unique ware IDs from all relevant sources.
+-- Populate typeData.wares for one expanded transport type.
+-- Only called when a type row is expanded; skips all per-ware API work otherwise.
+local function collectWareData(station, typeData)
   local wareSet = {}
 
-  -- Current cargo contents.
   local cargo = GetComponentData(station, "cargo") or {}
   for ware in pairs(cargo) do wareSet[ware] = true end
 
-  -- Production lists (products, pure resources, intermediates).
   local products, pureresources, intermediatewares =
     GetComponentData(station, "availableproducts", "pureresources", "intermediatewares")
-  for _, ware in ipairs(products        or {}) do wareSet[ware] = true end
-  for _, ware in ipairs(pureresources   or {}) do wareSet[ware] = true end
+  for _, ware in ipairs(products          or {}) do wareSet[ware] = true end
+  for _, ware in ipairs(pureresources     or {}) do wareSet[ware] = true end
   for _, ware in ipairs(intermediatewares or {}) do wareSet[ware] = true end
 
-  -- Wares with explicit stock-limit overrides (includes trade wares).
   local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
   if overrideCount and overrideCount > 0 then
     local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
@@ -147,23 +144,21 @@ local function collectStorageData(station)
     end
   end
 
-  -- 3. For each ware, get ware data and assign to the correct type.
+  local cap = typeData.capacity
   for ware in pairs(wareSet) do
     local wareName, transport, volume, icon =
       GetWareData(ware, "name", "transport", "volume", "icon")
-    if transport and typeMap[transport] then
+    if transport == typeData.id then
       local vol          = volume or 1
       local limit        = GetWareProductionLimit(station, ware) or 0
       local stock        = cargo[ware] or 0
       local isAuto       = not HasContainerStockLimitOverride(station, ware)
-      local cap          = typeMap[transport].capacity
-      -- Use draft limit if the player has already moved the slider this session.
       local displayLimit = ssa.draftLimits[ware] or limit
       local allocPct     = (cap > 0 and displayLimit > 0)
           and math.min(100, displayLimit * vol / cap * 100)
           or  0
 
-      table.insert(typeMap[transport].wares, {
+      table.insert(typeData.wares, {
         id           = ware,
         name         = wareName or ware,
         icon         = (icon and icon ~= "") and icon or "solid",
@@ -178,15 +173,7 @@ local function collectStorageData(station)
     end
   end
 
-  -- 4. Sort wares alphabetically within each type; sort types alphabetically.
-  local typesArray = {}
-  for _, typeData in pairs(typeMap) do
-    table.sort(typeData.wares, function(a, b) return a.name < b.name end)
-    table.insert(typesArray, typeData)
-  end
-  table.sort(typesArray, function(a, b) return a.name < b.name end)
-
-  return typesArray
+  table.sort(typeData.wares, function(a, b) return a.name < b.name end)
 end
 
 -- ─── table builder ───────────────────────────────────────────────────────────
@@ -283,8 +270,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
   row[7]:createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
   row[8]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
 
-  -- ── collect storage data ──
-  local typesArray = collectStorageData(station)
+  -- ── collect storage type data ──
+  local typesArray = collectTypeData(station)
 
   if #typesArray == 0 then
     row = tableInfo:addRow(true, {})
@@ -332,6 +319,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
 
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
+      collectWareData(station, typeData)
       local sliderCount = 0  -- tracks how many editable sliders have been placed
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).

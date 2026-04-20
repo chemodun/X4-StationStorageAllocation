@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chinese Simplified -->
+<diff>
+  <add sel="/language">
+    <page id="1972092419" voice="no" title="空间站仓储分配" descr="空间站仓储分配">
+      <!-- mod identity -->
+      <t id="1">仓储分配</t>
+      <t id="2">空间站仓储分配 - 显示每种类型的仓储容量和使用情况，可展开查看每种货物的分配。编辑模式可通过滑块调整每种货物的限额。</t>
+      <!-- column headers -->
+      <t id="110">货物</t>
+      <t id="111">库存 m³</t>
+      <t id="115">数量:</t>
+      <t id="116">%</t>
+      <t id="112">限额 m³</t>
+      <t id="113">%</t>
+      <t id="114">自动</t>
+      <!-- bottom buttons -->
+      <t id="1003">保存</t>
+      <t id="1004">全部重置</t>
+      <t id="1005">编辑</t>
+      <t id="1006">取消</t>
+      <t id="1007">忽略库存 \(允许限额低于当前库存量\)</t>
+      <t id="1008">全部自动</t>
+      <!-- status / empty messages -->
+      <t id="1001">选择玩家拥有的空间站以查看仓储分配。</t>
+      <t id="1002">此空间站上未找到货物仓储模块。</t>
+      <!-- slider button fallback -->
+      <t id="1010">设置分配</t>
+      <!-- settings page labels -->
+      <t id="90001">空间站仓储分配</t>
+      <t id="90011">库存缓存刷新间隔 \(刻\)</t>
+    </page>
+  </add>
+</diff>

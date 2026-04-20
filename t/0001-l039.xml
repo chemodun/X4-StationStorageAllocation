@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Italian -->
+<diff>
+  <add sel="/language">
+    <page id="1972092419" voice="no" title="Allocazione dello spazio di stazione" descr="Allocazione dello spazio di stazione">
+      <!-- mod identity -->
+      <t id="1">Allocazione spazio</t>
+      <t id="2">Allocazione dello spazio di stazione - mostra capacità e utilizzo del deposito per tipo con allocazione per merce. La modalità modifica consente di regolare i limiti per merce.</t>
+      <!-- column headers -->
+      <t id="110">Merce</t>
+      <t id="111">Scorte, m³</t>
+      <t id="115">Articoli:</t>
+      <t id="116">%</t>
+      <t id="112">Limite, m³</t>
+      <t id="113">%</t>
+      <t id="114">Auto</t>
+      <!-- bottom buttons -->
+      <t id="1003">Salva</t>
+      <t id="1004">Reimposta tutto</t>
+      <t id="1005">Modifica</t>
+      <t id="1006">Annulla</t>
+      <t id="1007">Ignora scorte \(consente limiti inferiori alle scorte attuali\)</t>
+      <t id="1008">Auto tutto</t>
+      <!-- status / empty messages -->
+      <t id="1001">Seleziona una stazione del giocatore per vedere l'allocazione dello spazio.</t>
+      <t id="1002">Nessun modulo di stoccaggio merci trovato in questa stazione.</t>
+      <!-- slider button fallback -->
+      <t id="1010">Imposta allocazione</t>
+      <!-- settings page labels -->
+      <t id="90001">Allocazione spazio di stazione</t>
+      <t id="90011">Intervallo di aggiornamento della cache delle scorte \(tick\)</t>
+    </page>
+  </add>
+</diff>

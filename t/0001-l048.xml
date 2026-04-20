@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Polish -->
+<diff>
+  <add sel="/language">
+    <page id="1972092419" voice="no" title="Przydział przechowalni stacji" descr="Przydział przechowalni stacji">
+      <!-- mod identity -->
+      <t id="1">Przydział przechowalni</t>
+      <t id="2">Przydział przechowalni stacji - pokazuje pojemność i wykorzystanie magazynu według typu z rozszerzalnym przydziałem na towar. Tryb edycji umożliwia dostosowanie limitów za pomocą suwaków.</t>
+      <!-- column headers -->
+      <t id="110">Towar</t>
+      <t id="111">Zapas, m³</t>
+      <t id="115">Szt.:</t>
+      <t id="116">%</t>
+      <t id="112">Limit, m³</t>
+      <t id="113">%</t>
+      <t id="114">Auto</t>
+      <!-- bottom buttons -->
+      <t id="1003">Zapisz</t>
+      <t id="1004">Zresetuj wszystko</t>
+      <t id="1005">Edytuj</t>
+      <t id="1006">Anuluj</t>
+      <t id="1007">Ignoruj zapas \(zezwól na limity poniżej aktualnego zapasu\)</t>
+      <t id="1008">Wszystko auto</t>
+      <!-- status / empty messages -->
+      <t id="1001">Wybierz stację gracza, aby zobaczyć przydział przechowalni.</t>
+      <t id="1002">Nie znaleziono modułów magazynowych ładunku na tej stacji.</t>
+      <!-- slider button fallback -->
+      <t id="1010">Ustaw przydział</t>
+      <!-- settings page labels -->
+      <t id="90001">Przydział przechowalni stacji</t>
+      <t id="90011">Interwał odświeżania pamięci podręcznej zapasów \(tiki\)</t>
+    </page>
+  </add>
+</diff>

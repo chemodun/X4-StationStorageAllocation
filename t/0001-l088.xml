@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chinese Traditional -->
+<diff>
+  <add sel="/language">
+    <page id="1972092419" voice="no" title="太空站倉儲分配" descr="太空站倉儲分配">
+      <!-- mod identity -->
+      <t id="1">倉儲分配</t>
+      <t id="2">太空站倉儲分配 - 顯示每種類型的倉儲容量和使用情況，可展開查看每種貨物的分配。編輯模式可透過滑桿調整每種貨物的限額。</t>
+      <!-- column headers -->
+      <t id="110">貨物</t>
+      <t id="111">庫存 m³</t>
+      <t id="115">數量:</t>
+      <t id="116">%</t>
+      <t id="112">限額 m³</t>
+      <t id="113">%</t>
+      <t id="114">自動</t>
+      <!-- bottom buttons -->
+      <t id="1003">保存</t>
+      <t id="1004">全部重設</t>
+      <t id="1005">編輯</t>
+      <t id="1006">取消</t>
+      <t id="1007">忽略庫存 \(允許限額低於當前庫存量\)</t>
+      <t id="1008">全部自動</t>
+      <!-- status / empty messages -->
+      <t id="1001">選擇玩家擁有的太空站以查看倉儲分配。</t>
+      <t id="1002">此太空站上未找到貨物倉儲模組。</t>
+      <!-- slider button fallback -->
+      <t id="1010">設置分配</t>
+      <!-- settings page labels -->
+      <t id="90001">太空站倉儲分配</t>
+      <t id="90011">庫存快取刷新間隔 \(刻\)</t>
+    </page>
+  </add>
+</diff>

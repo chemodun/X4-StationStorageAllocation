@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spanish -->
+<diff>
+  <add sel="/language">
+    <page id="1972092419" voice="no" title="Asignación de almacenamiento de estación" descr="Asignación de almacenamiento de estación">
+      <!-- mod identity -->
+      <t id="1">Asignación de almacenamiento</t>
+      <t id="2">Asignación de almacenamiento de estación - muestra la capacidad y el uso del almacenamiento por tipo con asignación por mercancía. El modo edición permite ajustar los límites por mercancía.</t>
+      <!-- column headers -->
+      <t id="110">Mercancía</t>
+      <t id="111">Stock, m³</t>
+      <t id="115">Artículos:</t>
+      <t id="116">%</t>
+      <t id="112">Límite, m³</t>
+      <t id="113">%</t>
+      <t id="114">Auto</t>
+      <!-- bottom buttons -->
+      <t id="1003">Guardar</t>
+      <t id="1004">Restablecer todo</t>
+      <t id="1005">Editar</t>
+      <t id="1006">Cancelar</t>
+      <t id="1007">Ignorar stock \(permitir límites por debajo del stock actual\)</t>
+      <t id="1008">Auto todo</t>
+      <!-- status / empty messages -->
+      <t id="1001">Seleccione una estación del jugador para ver la asignación de almacenamiento.</t>
+      <t id="1002">No se encontraron módulos de almacenamiento de carga en esta estación.</t>
+      <!-- slider button fallback -->
+      <t id="1010">Establecer asignación</t>
+      <!-- settings page labels -->
+      <t id="90001">Asignación de almacenamiento de estación</t>
+      <t id="90011">Intervalo de actualización del caché de stock \(ticks\)</t>
+    </page>
+  </add>
+</diff>

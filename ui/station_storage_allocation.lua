@@ -508,11 +508,11 @@ local function setupStorageSubmenuRows(tableInfo, station)
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
       collectWareData(station, typeData)
-      -- Auto-enable ignoreStock if the station already has a saved limit of 0 for any ware
-      -- (meaning a previous edit stored a limit below stock).  Only relevant in edit mode.
+      -- Auto-enable ignoreStock if any ware's saved limit is less than its current stock
+      -- (limit < stock means the slider min would exceed its start, causing a validation error).
       if ssa.editEnabled and not ssa.ignoreStock then
         for _, wd in ipairs(typeData.wares) do
-          if wd.limit == 0 then
+          if wd.limit < wd.stock then
             ssa.ignoreStock = true
             break
           end

@@ -509,12 +509,16 @@ local function setupStorageSubmenuRows(tableInfo, station)
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
       local freeM3 = math.max(0, typeData.capacity - typeData.spaceUsed)
       local iconWidth = menu.getShipIconWidth()
-      local currentGroup = nil  -- tracks the last rendered group sub-header
+      local currentGroup = nil        -- tracks the last rendered group
+      local wareGroupContainer = tableInfo  -- v8: add rows directly to tableInfo
 
       for _, wareData in ipairs(typeData.wares) do
-        -- Insert a group sub-header row whenever the ware group changes.
+        -- When the group changes, start a new rowgroup (v9) or keep tableInfo (v8).
         if wareData.group ~= currentGroup then
           currentGroup = wareData.group
+          if ssa.isV9 then
+            wareGroupContainer = tableInfo:addRowGroup({})
+          end
           -- Vanilla text refs: 1=Products{1001,1610}, 2=Intermediate{1001,6100},
           --                      3=Resources{1001,41}, 4=Trade Wares{1001,2829}
           local groupTextRef = { {1001,1610}, {1001,6100}, {1001,41}, {1001,2829} }
@@ -539,7 +543,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local gameStockPct = (gameLimitM3 > 0)
               and math.min(100, stockM3 / gameLimitM3 * 100)
               or  0
-          local wareRow = tableInfo:addRow(true, { bgColor = Color["row_background_unselectable"] })
+          local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
@@ -566,7 +570,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               or  math.floor((stockM3 + freeM3) / vol))
               or 0
 
-          local sliderRow = tableInfo:addRow(false, { bgColor = Color["row_background_unselectable"] })
+          local sliderRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
 
           if useSlider then
             sliderCount = sliderCount + 1
@@ -680,7 +684,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local stockPct = (limitM3 > 0)
               and math.min(100, stockM3 / limitM3 * 100)
               or  0
-          local wareRow = tableInfo:addRow(true, { bgColor = Color["row_background_unselectable"] })
+          local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left", fontsize = config.mapFontSize }
@@ -707,7 +711,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           end
 
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
-          local subRow = tableInfo:addRow(false, { bgColor = Color["row_background_unselectable"] })
+          local subRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
           subRow[2]:createText(ReadText(SSA_PAGE, 115),
             { x = iconWidth + config.mapFontSize, halign = "left", fontsize = config.mapFontSize, color = Color["text_inactive"] })
           subRow[4]:createText(fmt(wareData.stock),

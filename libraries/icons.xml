@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<diff>
+    <add sel="/icons">
+        <icon name="mapst_station_storage" texture="extensions\station_storage_allocation\assets\textures\ui\map_sidebar_tabs\mapst_station_storage.tga" height="128" width="128" />
+    </add>
+</diff>

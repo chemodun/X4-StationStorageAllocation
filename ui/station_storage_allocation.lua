@@ -798,7 +798,7 @@ local function init()
       table.insert(config.infoCategories, objectInfoIdx + 1, {
         category        = SSA_CATEGORY,
         name            = ReadText(SSA_PAGE, 1),
-        icon            = "stationbuildst_lsov",
+        icon            = "mapst_station_storage",
         helpOverlayID   = "chem_station_storage_alloc",
         helpOverlayText = ReadText(SSA_PAGE, 2),
       })

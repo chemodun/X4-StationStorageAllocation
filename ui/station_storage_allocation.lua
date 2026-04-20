@@ -42,6 +42,8 @@ ffi.cdef [[
   const char* GetComponentName(UniverseID componentid);
   GameVersion GetGameVersion(void);
   uint32_t    GetContainerStockLimitOverrides(UIWareInfo* result, uint32_t resultlen, UniverseID containerid);
+  double      GetContainerWareConsumption(UniverseID containerid, const char* wareid, bool ignorestate);
+  double      GetContainerWareProduction(UniverseID containerid, const char* wareid, bool ignorestate);
   uint32_t    GetNumCargoTransportTypes(UniverseID containerid, bool merge);
   uint32_t    GetNumContainerStockLimitOverrides(UniverseID containerid);
   const char* GetObjectIDCode(UniverseID objectid);
@@ -148,29 +150,67 @@ end
 
 -- Populate typeData.wares for one expanded transport type.
 -- Only called when a type row is expanded; skips all per-ware API work otherwise.
+-- Classification follows SPO's approach: groups are derived from whether the ware
+-- is produced and/or consumed at this station (ignorestate=true):
+--   1 = product      (produced, not consumed as module input)
+--   2 = intermediate (produced AND consumed as module input)
+--   3 = resource     (not produced; consumed as module input OR by workforce)
+--   4 = trade        (in cargo / override; neither produced nor consumed)
 local function collectWareData(station, typeData)
-  local wareSet = {}
+  local wareSet = {}  -- [ware] = group: 1=product, 2=intermediate, 3=resource, 4=trade
 
   local cargo = GetComponentData(station, "cargo") or {}
-  for ware in pairs(cargo) do wareSet[ware] = true end
-
-  local products, pureResources, intermediateWares =
-    GetComponentData(station, "availableproducts", "pureresources", "intermediatewares")
-  for _, ware in ipairs(products           or {}) do wareSet[ware] = true end
-  for _, ware in ipairs(pureResources      or {}) do wareSet[ware] = true end
-  for _, ware in ipairs(intermediateWares  or {}) do wareSet[ware] = true end
+  for ware in pairs(cargo) do
+    wareSet[ware] = 4  -- default trade; reclassified below
+  end
 
   local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
   if overrideCount and overrideCount > 0 then
     local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
     overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
     for i = 0, overrideCount - 1 do
-      wareSet[ffi.string(overrideBuf[i].ware)] = true
+      local w = ffi.string(overrideBuf[i].ware)
+      if not wareSet[w] then wareSet[w] = 4 end
+    end
+  end
+
+  -- Classify using SPO's production/consumption approach.
+  -- ignorestate=true: reflects station design, not current runtime state.
+  -- Note: GetContainerWareConsumption only covers module consumption, NOT
+  -- workforce consumption (food, medicine, etc.) — handled separately below.
+  for ware in pairs(wareSet) do
+    local isProduced = C.GetContainerWareProduction(station, ware, true) > 0
+    local isConsumed = C.GetContainerWareConsumption(station, ware, true) > 0
+    if isProduced and isConsumed then
+      wareSet[ware] = 2  -- intermediate
+    elseif isProduced then
+      wareSet[ware] = 1  -- product
+    elseif isConsumed then
+      wareSet[ware] = 3  -- resource
+    end
+    -- else stays 4 (trade) — workforce wares corrected below
+  end
+
+  -- Reclassify workforce-consumed wares (food, medicine, etc.) that are stored
+  -- in cargo but are not module inputs, so GetContainerWareConsumption returns 0
+  -- for them.  Any ware still tagged as trade (4) that appears in the workforce
+  -- resource list is a resource, not a trade ware.
+  if type(GetWorkForceRaceResources) == "function" then
+    local wfResourceInfos = GetWorkForceRaceResources(station)
+    if wfResourceInfos then
+      for _, ri in ipairs(wfResourceInfos) do
+        for _, resource in ipairs(ri.resources or {}) do
+          local ware = resource.ware
+          if wareSet[ware] == 4 then
+            wareSet[ware] = 3  -- resource
+          end
+        end
+      end
     end
   end
 
   local cap = typeData.capacity
-  for ware in pairs(wareSet) do
+  for ware, group in pairs(wareSet) do
     local wareName, transport, volume, icon =
       GetWareData(ware, "name", "transport", "volume", "icon")
     if transport == typeData.id then
@@ -194,11 +234,16 @@ local function collectWareData(station, typeData)
         isAuto       = isAuto,
         allocPct     = allocPct,
         displayLimit = displayLimit,
+        group        = group,
       })
     end
   end
 
-  table.sort(typeData.wares, function(a, b) return a.name < b.name end)
+  -- Sort by group (1=product → 4=trade), then alphabetically within each group.
+  table.sort(typeData.wares, function(a, b)
+    if a.group ~= b.group then return a.group < b.group end
+    return a.name < b.name
+  end)
 end
 
 -- ─── table builder ───────────────────────────────────────────────────────────
@@ -383,8 +428,22 @@ local function setupStorageSubmenuRows(tableInfo, station)
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
       local freeM3 = math.max(0, typeData.capacity - typeData.spaceUsed)
       local iconWidth = menu.getShipIconWidth()
+      local currentGroup = nil  -- tracks the last rendered group sub-header
 
       for _, wareData in ipairs(typeData.wares) do
+        -- Insert a group sub-header row whenever the ware group changes.
+        if wareData.group ~= currentGroup then
+          currentGroup = wareData.group
+          -- Vanilla text refs: 1=Products{1001,1610}, 2=Intermediate{1001,6100},
+          --                      3=Resources{1001,41}, 4=Trade Wares{1001,2829}
+          local groupTextRef = { {1001,1610}, {1001,6100}, {1001,41}, {1001,2829} }
+          local ref = groupTextRef[currentGroup]
+          local groupRow = tableInfo:addRow(false, { bgColor = Color["row_title_background"] })
+          groupRow[2]:setColSpan(8):createText(
+            ReadText(ref[1], ref[2]),
+            { halign = "center", fontsize = config.mapFontSize }
+          )
+        end
         -- Pre-compute m³ values.
         local stockM3 = wareData.stock * wareData.volume
         local limitM3 = wareData.displayLimit * wareData.volume

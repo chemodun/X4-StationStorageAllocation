@@ -485,8 +485,20 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })
           wareRow[7]:createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
           local autoX = (row[8]:getWidth() - config.mapRowHeight) / 2
-          wareRow[8]:createCheckBox(wareData.isAuto, { active = false,
+          local capturedWare = wareData
+          wareRow[8]:createCheckBox(wareData.isAuto, { active = true,
             x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
+          wareRow[8].handlers.onClick = function(_, checked)
+            if checked then
+              -- Restore auto mode: remove the manual override.
+              ClearContainerStockLimitOverride(station, capturedWare.id)
+            else
+              -- Pin to manual mode: freeze the current auto limit as an override.
+              local currentLimit = GetWareProductionLimit(station, capturedWare.id)
+              SetContainerStockLimitOverride(station, capturedWare.id, math.max(1, currentLimit))
+            end
+            menu.refreshInfoFrame()
+          end
 
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
           local subRow = tableInfo:addRow(false, {})

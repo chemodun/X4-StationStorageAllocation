@@ -49,6 +49,7 @@ ffi.cdef [[
   UniverseID  GetPlayerID(void);
   UniverseID  GetPlayerOccupiedShipID(void);
   bool        IsComponentClass(UniverseID componentid, const char* classname);
+  bool        IsGamePaused(void);
   void        SetFocusMapComponent(UniverseID holomapid, UniverseID componentid, bool resetplayerpan);
   float       GetTextWidth(const char* const text, const char* const fontname, float fontsize);
 ]]
@@ -69,8 +70,9 @@ local config = nil
 local ssa = {
   isV9             = C.GetGameVersion().major >= 9,
   expandedType     = nil,   -- transport-type ID string currently expanded, or nil
-  editEnabled      = false, -- whether edit mode is active
-  ignoreStock      = false, -- when true: slider min=0, max=full capacity (allows setting limit below stock)
+  editEnabled         = false, -- whether edit mode is active
+  wasPausedBeforeEdit = false, -- game was already paused when we entered edit mode
+  ignoreStock         = false, -- when true: slider min=0, max=full capacity (allows setting limit below stock)
   draftLimits      = {},    -- [ware_id] = new limit in units (pending, applied on Save)
   activeSliderWare = nil,   -- ware that gets a slider when budget would be exceeded
 }
@@ -94,6 +96,27 @@ local function resolveInfoSubmenuObject()
       end
     end
   end
+end
+
+-- Enter edit mode: store pause state and ensure the game is paused.
+local function enterEditMode()
+  ssa.wasPausedBeforeEdit = C.IsGamePaused()
+  if not ssa.wasPausedBeforeEdit then
+    Pause()
+  end
+  ssa.editEnabled = true
+end
+
+-- Exit edit mode: restore pause state.  Caller is responsible for refreshing the frame.
+local function exitEditMode()
+  ssa.editEnabled         = false
+  ssa.ignoreStock         = false
+  ssa.draftLimits         = {}
+  ssa.activeSliderWare    = nil
+  if not ssa.wasPausedBeforeEdit then
+    Unpause()
+  end
+  ssa.wasPausedBeforeEdit = false
 end
 
 -- ─── data collection (lazy) ──────────────────────────────────────────────────
@@ -579,10 +602,7 @@ local function addBottomButtons(tableButton, station)
     row[1]:createButton({ y = Helper.borderSize })
         :setText(ReadText(SSA_PAGE, 1006), { halign = "center" })
     row[1].handlers.onClick = function()
-      ssa.editEnabled      = false
-      ssa.ignoreStock      = false
-      ssa.draftLimits      = {}
-      ssa.activeSliderWare = nil
+      exitEditMode()
       menu.refreshInfoFrame()
     end
 
@@ -614,10 +634,7 @@ local function addBottomButtons(tableButton, station)
           ClearContainerStockLimitOverride(station, ware)
         end
       end
-      ssa.editEnabled      = false
-      ssa.ignoreStock      = false
-      ssa.draftLimits      = {}
-      ssa.activeSliderWare = nil
+      exitEditMode()
       menu.refreshInfoFrame()
     end
   else
@@ -628,8 +645,7 @@ local function addBottomButtons(tableButton, station)
         :setText(ReadText(SSA_PAGE, 1005), { halign = "center" })
     if canEdit then
       row[5].handlers.onClick = function()
-        ssa.editEnabled = true
-        Pause()
+        enterEditMode()
         menu.refreshInfoFrame()
       end
     end
@@ -642,6 +658,11 @@ local function createStorageSubmenu(inputframe, instance)
   -- Temporary fix: the right-side panel uses infoFrame2.
   if instance == "right" then
     inputframe = menu.infoFrame2
+  end
+
+  -- Safety: if edit mode is active but the game was unpaused externally, re-pause it.
+  if ssa.editEnabled and not C.IsGamePaused() then
+    Pause()
   end
 
   local frameHeight = inputframe.properties.height
@@ -731,7 +752,13 @@ end
 -- Called by kuertee UI Extensions for any unknown infoMode — guard with mode check.
 function ssa.onInfoSubMenuCreate(infoFrame, instance)
   local activeMode = (instance == "right") and menu.infoMode.right or menu.infoMode.left
-  if activeMode ~= SSA_CATEGORY then return end
+  if activeMode ~= SSA_CATEGORY then
+    -- Switched away from the SSA tab while in edit mode — restore pause state without refreshing.
+    if ssa.editEnabled then
+      exitEditMode()
+    end
+    return
+  end
   createStorageSubmenu(infoFrame, instance)
 end
 

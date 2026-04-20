@@ -122,7 +122,7 @@ end
 -- ─── data collection (lazy) ──────────────────────────────────────────────────
 
 -- Collect transport-type header data from a station (no per-ware detail).
--- Returns a sorted array of type records: { id, name, spaceused, capacity, wares = {} }
+-- Returns a sorted array of type records: { id, name, spaceUsed, capacity, wares = {} }
 -- Per-ware data is populated lazily by collectWareData only for the expanded type.
 local function collectTypeData(station)
   local typeCount = tonumber(C.GetNumCargoTransportTypes(station, true))
@@ -135,7 +135,7 @@ local function collectTypeData(station)
       table.insert(typesArray, {
         id        = ffi.string(storageBuf[i].transport),
         name      = ffi.string(storageBuf[i].name),
-        spaceused = tonumber(storageBuf[i].spaceused),
+        spaceUsed = tonumber(storageBuf[i].spaceused),
         capacity  = tonumber(storageBuf[i].capacity),
         wares     = {},
       })
@@ -154,11 +154,11 @@ local function collectWareData(station, typeData)
   local cargo = GetComponentData(station, "cargo") or {}
   for ware in pairs(cargo) do wareSet[ware] = true end
 
-  local products, pureresources, intermediatewares =
+  local products, pureResources, intermediateWares =
     GetComponentData(station, "availableproducts", "pureresources", "intermediatewares")
-  for _, ware in ipairs(products          or {}) do wareSet[ware] = true end
-  for _, ware in ipairs(pureresources     or {}) do wareSet[ware] = true end
-  for _, ware in ipairs(intermediatewares or {}) do wareSet[ware] = true end
+  for _, ware in ipairs(products           or {}) do wareSet[ware] = true end
+  for _, ware in ipairs(pureResources      or {}) do wareSet[ware] = true end
+  for _, ware in ipairs(intermediateWares  or {}) do wareSet[ware] = true end
 
   local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
   if overrideCount and overrideCount > 0 then
@@ -206,11 +206,11 @@ end
 -- Create and configure the standard 6-column info table.
 -- Columns: 1=+/- button(fixed), 2=name(min 30%), 3=stock/used(12%),
 --          4=limit/cap(12%), 5=%(11%), 6=indicator/slider(23%)
-local function addInfoTable(inputframe, infoBorder)
-  local tableInfo = inputframe:addTable(9, ssa.isV9 and {
+local function addInfoTable(inputFrame, infoBorder)
+  local tableInfo = inputFrame:addTable(9, ssa.isV9 and {
     tabOrder          = 1,
     x                 = Helper.standardContainerOffset,
-    width             = inputframe.properties.width - 2 * Helper.standardContainerOffset,
+    width             = inputFrame.properties.width - 2 * Helper.standardContainerOffset,
     backgroundID      = "solid",
     backgroundColor   = Color["container_subsection_background"] or nil,
     backgroundPadding = 0,
@@ -359,7 +359,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
     -- Cols 2-9: read-only capacity bar with type name label (vanilla storage style).
     typeRow[2]:setColSpan(8):createSliderCell({
       height   = config.mapRowHeight,
-      start    = typeData.spaceused,
+      start    = typeData.spaceUsed,
       max      = math.max(1, typeData.capacity),
       readOnly = true,
       suffix   = ReadText(1001, 110),
@@ -368,10 +368,11 @@ local function setupStorageSubmenuRows(tableInfo, station)
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
       collectWareData(station, typeData)
-      -- Auto-enable ignoreStock if any ware has a limit of 0 (set below stock via a previous edit).
-      if not ssa.ignoreStock then
+      -- Auto-enable ignoreStock if the station already has a saved limit of 0 for any ware
+      -- (meaning a previous edit stored a limit below stock).  Only relevant in edit mode.
+      if ssa.editEnabled and not ssa.ignoreStock then
         for _, wd in ipairs(typeData.wares) do
-          if wd.displayLimit == 0 then
+          if wd.limit == 0 then
             ssa.ignoreStock = true
             break
           end
@@ -380,7 +381,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
       local sliderCount = 0  -- tracks how many editable sliders have been placed
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
-      local freeM3 = math.max(0, typeData.capacity - typeData.spaceused)
+      local freeM3 = math.max(0, typeData.capacity - typeData.spaceUsed)
       local iconWidth = menu.getShipIconWidth()
 
       for _, wareData in ipairs(typeData.wares) do
@@ -654,10 +655,10 @@ end
 
 -- ─── submenu builder ─────────────────────────────────────────────────────────
 
-local function createStorageSubmenu(inputframe, instance)
+local function createStorageSubmenu(inputFrame, instance)
   -- Temporary fix: the right-side panel uses infoFrame2.
   if instance == "right" then
-    inputframe = menu.infoFrame2
+    inputFrame = menu.infoFrame2
   end
 
   -- Safety: if edit mode is active but the game was unpaused externally, re-pause it.
@@ -665,13 +666,13 @@ local function createStorageSubmenu(inputframe, instance)
     Pause()
   end
 
-  local frameHeight = inputframe.properties.height
+  local frameHeight = inputFrame.properties.height
   resolveInfoSubmenuObject()
 
   -- Frame border (V9 only).
   local infoBorder = nil
   if ssa.isV9 then
-    infoBorder = inputframe:addFrameBorder("ssa_storagealloc", {
+    infoBorder = inputFrame:addFrameBorder("ssa_storagealloc", {
       offsetBottom = Helper.standardContainerOffset,
       active       = menu.panelState[instance .. "menu"],
       color        = Helper.getFrameBorderColor(menu, menu.panelState[instance .. "menu"],
@@ -681,7 +682,7 @@ local function createStorageSubmenu(inputframe, instance)
     Helper.setFrameBorderIcon(menu, infoBorder, instance, menu.sideBarWidth / 2)
   end
 
-  local tableInfo = addInfoTable(inputframe, infoBorder)
+  local tableInfo = addInfoTable(inputFrame, infoBorder)
 
   -- Pre-V9: show the parent panel title + tab title as header rows inside the table.
   if not ssa.isV9 then
@@ -697,8 +698,8 @@ local function createStorageSubmenu(inputframe, instance)
 
   -- Header strip (orders menu header).
   local tableHeader = ssa.isV9
-      and menu.createOrdersMenuHeader(inputframe, infoBorder, instance)
-      or  menu.createOrdersMenuHeader(inputframe, instance)
+      and menu.createOrdersMenuHeader(inputFrame, infoBorder, instance)
+      or  menu.createOrdersMenuHeader(inputFrame, instance)
   tableInfo.properties.y = tableHeader.properties.y + tableHeader:getFullHeight() + Helper.borderSize
 
   local isLeft    = instance == "left"
@@ -707,7 +708,7 @@ local function createStorageSubmenu(inputframe, instance)
 
   -- Bottom buttons table (always shown for valid stations).
   if isStation then
-    local tableButton = inputframe:addTable(5, ssa.isV9 and {
+    local tableButton = inputFrame:addTable(5, ssa.isV9 and {
       tabOrder          = 2,
       backgroundID      = "solid",
       backgroundColor   = Color["container_subsection_background"] or nil,

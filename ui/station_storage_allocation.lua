@@ -470,6 +470,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
   -- the remainder is available for editable ware-allocation sliders.
   local wareSliderBudget = SLIDER_MAX - #typesArray
 
+  local expandedTypeData = nil   -- captures typeData for the expanded type (returned to caller)
+
   -- ── render each storage type ──
   for _, typeData in ipairs(typesArray) do
     local isExpanded = (ssa.expandedType == typeData.id)
@@ -507,6 +509,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
 
     -- ── ware rows (only when this type is expanded) ──
     if isExpanded then
+      expandedTypeData = typeData
       collectWareData(station, typeData)
       -- Auto-enable ignoreStock if any ware's saved limit is less than its current stock
       -- (limit < stock means the slider min would exceed its start, causing a validation error).
@@ -735,12 +738,13 @@ local function setupStorageSubmenuRows(tableInfo, station)
       end  -- for each ware
     end  -- if isExpanded
   end  -- for each type
+  return expandedTypeData
 end
 
 -- Bottom button bar.
 -- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All] [gap] [Save]
--- View mode:  [                          ] [gap] [Edit] — Edit disabled if nothing is expanded.
-local function addBottomButtons(tableButton, station)
+-- View mode:  [Auto All (col 3, if any manual wares)] [gap] [Edit] -- Edit disabled if nothing is expanded.
+local function addBottomButtons(tableButton, station, expandedTypeData)
   if ssa.editEnabled then
     -- "Ignore stock" checkbox row: when checked, sliders allow limits below current stock.
     local checkRow = tableButton:addRow("info_checkbox_ignorestock", { fixed = true })
@@ -799,6 +803,32 @@ local function addBottomButtons(tableButton, station)
       menu.refreshInfoFrame()
     end
   else
+    -- Auto All: restore auto mode for all wares in the expanded type that have a manual override.
+    -- Enabled only when at least one ware has a manual override.
+    local hasManualWares = false
+    if expandedTypeData then
+      for _, wd in ipairs(expandedTypeData.wares) do
+        if not wd.isAuto then
+          hasManualWares = true
+          break
+        end
+      end
+    end
+    local capturedTypeData = expandedTypeData
+    row[3]:createButton({ y = Helper.borderSize, active = hasManualWares })
+        :setText(ReadText(SSA_PAGE, 1008), { halign = "center" })
+    if hasManualWares then
+      row[3].handlers.onClick = function()
+        for _, wd in ipairs(capturedTypeData.wares) do
+          if not wd.isAuto then
+            ClearContainerStockLimitOverride(station, wd.id)
+          end
+        end
+        invalidateLimitsCache()
+        menu.refreshInfoFrame()
+      end
+    end
+
     -- Edit: enter edit mode, aligned at the Save (col 5) position.
     -- Disabled unless a storage type is currently expanded.
     local canEdit = (ssa.expandedType ~= nil)
@@ -852,7 +882,7 @@ local function createStorageSubmenu(inputFrame, instance)
     row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1), Helper.headerRowCenteredProperties)
   end
 
-  setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
+  local expandedTypeData = setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
 
   restoreTableSelection(tableInfo, instance)
 
@@ -884,7 +914,7 @@ local function createStorageSubmenu(inputFrame, instance)
     tableButton:setColWidthPercent(4, 12)
     -- col 5 fills the remainder (~25%)
 
-    addBottomButtons(tableButton, menu.infoSubmenuObject)
+    addBottomButtons(tableButton, menu.infoSubmenuObject, expandedTypeData)
 
     local infoH   = tableInfo:getFullHeight()
     local buttonH = tableButton:getFullHeight()

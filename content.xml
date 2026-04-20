@@ -1,14 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <content
-    id="ws_0000000000"
-    name="Station Storage Allocation"
-    author="Chem O`Dun"
-    version="90001"
-    date="2026-06-02"
-    save="false"
-    sync="false"
-    enabled="1"
-    description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows capacity and usage per storage type with expandable per-ware allocation. Supports editing per-ware storage limits via percentage sliders.">
-    <text language="44" name="Station Storage Allocation"
-        description="Adds a Storage Allocation tab to the info panel for player-owned stations. Shows capacity/usage per storage type with expandable per-ware allocation, auto-managed indicators, and percentage slider editing." />
+  id="ws_3710920643"
+  name="Station Storage Allocation"
+  author="Chem O`Dun"
+  version="90001"
+  date="2026-04-20"
+  save="false"
+  sync="false"
+  enabled="1"
+  lastupdate="1776707456"
+  description="Adds a [b]Storage Allocation[/b] tab to the info panel tab strip in the map menu for player-owned stations. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map.&#13;&#10;&#13;&#10;[h2][b]Features[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [b]Storage Allocation tab[/b]: Dedicated tab in the station info panel showing a read-only capacity bar per storage type (solid, container, liquid, etc.).&#13;&#10;[*] [b]Expandable storage types[/b]: Click the [b]+[/b] button on any type row to expand it and see all wares stored in that type.&#13;&#10;[*] [b]Per-ware view[/b]: Each ware row shows current stock (m³ and %), the active limit (m³ and %), and an [b]Auto[/b] checkbox. Toggling the checkbox immediately switches between auto-managed and manually pinned limits without entering edit mode.&#13;&#10;[*] [b]Auto All button[/b]: When viewing an expanded type, a single button clears all manual overrides for that type at once, restoring auto management.&#13;&#10;[*] [b]Edit mode[/b]: Click [b]Edit[/b] (requires an expanded type) to enter edit mode. The game pauses automatically. Each ware gets an allocation slider to adjust its limit. Changes are previewed live and are only applied on [b]Save[/b].&#13;&#10;[*] [b]Rebalancing[/b]: When a slider is moved, the limits of other wares are proportionally reduced to keep the total within the type's capacity.&#13;&#10;[*] [b]Ignore stock checkbox[/b]: Allows setting a limit below the current stock (useful for planned reductions).&#13;&#10;[*] [b]Ware groups[/b]: Wares are split into [b]Products[/b], [b]Intermediates[/b], [b]Resources[/b], and [b]Trade Wares[/b] based on production and consumption at the station.&#13;&#10;[*] [b]Configurable stock refresh[/b]: Slider in [b]Extension options[/b] sets how often the stock cache is refreshed during view mode (default: every 3 UI ticks).&#13;&#10;[/list]&#13;&#10;[h2][b]Requirements[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [b]X4: Foundations[/b]: Version [b]8.00HF4[/b] or higher and [b]UI Extensions and HUD[/b]: Version [b]v8.0.4.3[/b] or higher by [url=https://next.nexusmods.com/profile/kuertee?gameId=2659]kuertee[/url].&#13;&#10;[list]&#13;&#10;[*] Available on Nexus Mods: [url=https://www.nexusmods.com/x4foundations/mods/552]UI Extensions and HUD[/url]&#13;&#10;[/list]&#13;&#10;[*] [b]Mod Support APIs[/b]: Version 1.95 or higher by [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url].&#13;&#10;[list]&#13;&#10;[*] Available on Steam: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274]SirNukes Mod Support APIs[/url]&#13;&#10;[*] Available on Nexus Mods: [url=https://www.nexusmods.com/x4foundations/mods/503]Mod Support APIs[/url]&#13;&#10;[/list]&#13;&#10;[/list]&#13;&#10;[h2][b]Installation[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [b]Steam Workshop[/b]: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710920643]Station Storage Allocation[/url] - only for [b]Game version 8.00[/b] with latest Steam version of the [b]UI Extensions and HUD[/b] mod (version 80.43 from April 8).&#13;&#10;[*] [b]Nexus Mods[/b]: [url=https://www.nexusmods.com/x4foundations/mods/2075]Station Storage Allocation[/url]&#13;&#10;[/list]&#13;&#10;[h2][b]Usage[/b][/h2]&#13;&#10;&#13;&#10;Open the map, select a player-owned station, and click the [b]Storage Allocation[/b] tab in the info panel.&#13;&#10;&#13;&#10;[h2]Viewing allocation[/h2]&#13;&#10;&#13;&#10;Each storage type row shows a capacity bar with the type name, total space used, and total capacity.&#13;&#10;&#13;&#10;[img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/storage_allocation.png[/img]&#13;&#10;&#13;&#10;Click [b]+[/b] to expand a type and see per-ware rows:&#13;&#10;[list]&#13;&#10;[*] [b]Stock m³ / %[/b]: current stock and its share of the limit.&#13;&#10;[*] [b]Limit m³ / %[/b]: active limit and its share of the type's total capacity.&#13;&#10;[*] [b]Auto checkbox[/b]: checked = game manages the limit automatically; unchecked = manually pinned. Click directly to toggle without entering edit mode.&#13;&#10;[/list]&#13;&#10;The [b]Auto All[/b] button (bottom-left, view mode) clears all manual overrides for the currently expanded type in one click. It is only enabled when at least one ware has a manual override.&#13;&#10;&#13;&#10;[h2]Edit mode[/h2]&#13;&#10;&#13;&#10;Click [b]Edit[/b] to enter edit mode (game pauses).&#13;&#10;&#13;&#10;[img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/edit_mode.png[/img]&#13;&#10;&#13;&#10;A slider appears for each ware in the expanded type. Slide to adjust the allocation - other wares adjust proportionally to stay within capacity. The saved (game) limit is shown greyed-out above the slider for reference.&#13;&#10;[list]&#13;&#10;[*] [b]Ignore stock[/b]: enables setting a limit below current stock. Auto-enabled when any ware's saved limit is already below its stock.&#13;&#10;[/list]&#13;&#10;[img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/edit_mode_ignore_stock.png[/img]&#13;&#10;[list]&#13;&#10;[*] [b]Reset All[/b]: removes all manual overrides on the station, restoring fully auto-managed limits.&#13;&#10;[*] [b]Save[/b]: applies all slider values and exits edit mode (game resumes).&#13;&#10;[*] [b]Cancel[/b]: discards all changes and exits edit mode (game resumes).&#13;&#10;[/list]&#13;&#10;[h2]Extension options[/h2]&#13;&#10;&#13;&#10;[b]Options Menu &gt; Extension options &gt; Station Storage Allocation[/b]:&#13;&#10;&#13;&#10;[img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/options.png[/img]&#13;&#10;[list]&#13;&#10;[*] [b]Stock cache refresh interval[/b] (1-10, default 3): UI ticks before stock values are re-read from the game. Lower = more up-to-date, higher = less CPU usage.&#13;&#10;[/list]&#13;&#10;[h2][b]Credits[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [b]Author[/b]: Chem O`Dun, on [url=https://next.nexusmods.com/profile/ChemODun/mods?gameId=2659]Nexus Mods[/url] and [url=https://steamcommunity.com/id/chemodun/myworkshopfiles/?appid=392160]Steam Workshop[/url]&#13;&#10;[*] [i]&quot;X4: Foundations&quot;[/i] is a trademark of [url=https://www.egosoft.com]Egosoft[/url].&#13;&#10;[/list]&#13;&#10;[h2][b]Acknowledgements[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [url=https://www.egosoft.com]EGOSOFT[/url] - for the X series.&#13;&#10;[*] [url=https://next.nexusmods.com/profile/kuertee?gameId=2659]kuertee[/url] - for the [b]UI Extensions and HUD[/b] that makes this extension possible.&#13;&#10;[*] [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url] - for the [b]Mod Support APIs[/b] that power the options menu.&#13;&#10;[/list]">
+  <text language="7"
+    description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map."></text>
+  <!-- French -->
+  <text language="33"
+    description="Ajoute un onglet Allocation de stockage au panneau d'informations pour les stations appartenant au joueur dans le menu de la carte. Affiche la capacité de stockage et l'utilisation par type avec une allocation extensible par marchandise et permet d'ajuster les limites de stockage par marchandise sans quitter la carte."></text>
+  <!-- Spanish -->
+  <text language="34"
+    description="Añade una pestaña de Asignación de almacenamiento al panel de información para estaciones del jugador en el menú del mapa. Muestra la capacidad de almacenamiento y el uso por tipo con asignación expandible por mercancía y permite ajustar los límites de almacenamiento por mercancía sin salir del mapa."></text>
+  <!-- Italian -->
+  <text language="39"
+    description="Aggiunge una scheda Allocazione magazzino al pannello informazioni per le stazioni di proprietà del giocatore nel menu della mappa. Mostra la capacità di magazzino e l'utilizzo per tipo con allocazione espandibile per merce e consente di regolare i limiti di magazzino per merce senza uscire dalla mappa."></text>
+  <!-- Czech -->
+  <text language="42"
+    description="Přidává záložku Přidělení úložiště do informačního panelu pro stanice vlastněné hráčem v mapovém menu. Zobrazuje kapacitu úložiště a využití po typech s rozšiřitelným přidělením po zboží a umožňuje upravovat limity úložiště po zboží bez opuštění mapy."></text>
+  <!-- English -->
+  <text language="44"
+    description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map."></text>
+  <!-- Polish -->
+  <text language="48"
+    description="Dodaje zakładkę Przydział magazynu do panelu informacyjnego dla stacji należących do gracza w menu mapy. Pokazuje pojemność magazynu i jego wykorzystanie według typu z rozszerzalnym przydziałem na towar i umożliwia dostosowanie limitów magazynu na towar bez opuszczania mapy."></text>
+  <!-- German -->
+  <text language="49"
+    description="Fügt einen Tab 'Lagerzuweisung' zum Info-Panel für spielereigene Stationen im Kartenmenü hinzu. Zeigt Lagerkapazität und -nutzung pro Typ mit erweiterbarer Zuweisung pro Ware und ermöglicht die Anpassung von Lagergrenzen pro Ware ohne das Kartenmenü zu verlassen."></text>
+  <!-- Portuguese -->
+  <text language="55"
+    description="Adiciona uma aba de Alocação de Armazenamento ao painel de informações para estações de propriedade do jogador no menu do mapa. Mostra a capacidade de armazenamento e o uso por tipo com alocação expansível por mercadoria e permite ajustar os limites de armazenamento por mercadoria sem sair do mapa."></text>
+  <!-- Japanese -->
+  <text language="81"
+    description="マップメニューのプレイヤー所有ステーションの情報パネルにストレージ割り当てタブを追加します。タイプ別のストレージ容量と使用状況を商品ごとの拡張可能な割り当てで表示し、マップを離れることなく商品ごとのストレージ上限を調整できます。"></text>
+  <!-- Korean -->
+  <text language="82"
+    description="지도 메뉴의 플레이어 소유 스테이션에 대한 정보 패널에 스토리지 할당 탭을 추가합니다. 유형별 스토리지 용량과 사용량을 상품별 확장 가능한 할당으로 표시하며 지도를 벗어나지 않고 상품별 스토리지 한도를 조정할 수 있습니다."></text>
+  <!-- Chinese Simplified -->
+  <text language="86"
+    description="在地图菜单中为玩家拥有的空间站的信息面板添加存储分配选项卡。按类型显示存储容量和使用情况，支持按货物展开分配，并允许在不离开地图的情况下调整每种货物的存储限制。"></text>
+  <!-- Chinese Traditional -->
+  <text language="88"
+    description="在地圖選單中為玩家擁有的空間站的資訊面板新增儲存分配標籤。按類型顯示儲存容量和使用情況，支援按貨物展開分配，並允許在不離開地圖的情況下調整每種貨物的儲存限制。"></text>
+  <!-- Turkish -->
+  <text language="90"
+    description="Harita menüsünde oyuncuya ait istasyonlar için bilgi paneline bir Depolama Tahsisi sekmesi ekler. Tür bazında depolama kapasitesini ve kullanımını mal başına genişletilebilir tahsisatla gösterir ve haritadan ayrılmadan mal başına depolama limitlerini ayarlamanıza olanak tanır."></text>
+  <!-- Ukrainian -->
+  <text language="380"
+    description="Додає вкладку Розподіл зберігання до інформаційної панелі для станцій гравця в меню карти. Показує місткість зберігання та використання за типами з розгортуваним розподілом на товар і дозволяє регулювати ліміти зберігання на товар без виходу з карти."></text>
+  <dependency version="800"></dependency>
+  <dependency id="kuerteeUIExtensionsAndHUD" optional="false" name="kuertee UI Extensions and HUD" version="804"></dependency>
+  <dependency id="ws_2042901274" optional="false" name="SirNukes Mod Support APIs" version="195"></dependency>
 </content>

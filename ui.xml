@@ -4,5 +4,6 @@
         <file name="ui/station_storage_allocation.lua" />
         <dependency name="ego_detailmonitor" />
         <dependency name="kuertee_ui_extensions" />
+        <dependency name="sn_mod_support_apis" />
     </environment>
 </addon>

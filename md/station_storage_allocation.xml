@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="Station_Storage_Allocation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../libraries/md.xsd">
+    <cues>
+
+        <cue name="Init" instantiate="false" version="1">
+            <cues>
+
+                <!-- ── Config initialisation ────────────────────────────────────── -->
+                <!-- Loads player.entity.$stationStorageAllocation, creating it with defaults if
+             absent. Sets $config as a local alias. Callers must remove_value
+             $config when done. -->
+                <library name="Get_Config" purpose="include_actions" version="1">
+                    <actions>
+                        <do_if value="@player.entity.$stationStorageAllocation == null">
+                            <set_value name="player.entity.$stationStorageAllocation" exact="table[ $stockRefreshInterval = 3]" />
+                        </do_if>
+                        <do_if value="player.entity.$stationStorageAllocation.$stockRefreshInterval? == false">
+                            <set_value name="player.entity.$stationStorageAllocation.$stockRefreshInterval" exact="3" />
+                        </do_if>
+                        <set_value name="$config" exact="player.entity.$stationStorageAllocation" />
+                    </actions>
+                </library>
+
+                <!-- ── Options menu registration ───────────────────────────────── -->
+                <cue name="Register_Menu" instantiate="true" version="1">
+                    <conditions>
+                        <event_cue_signalled cue="md.Simple_Menu_API.Reloaded" />
+                    </conditions>
+                    <actions>
+                        <signal_cue_instantly cue="md.Simple_Menu_API.Register_Options_Menu"
+                            param="table[
+                $id      = 'station_storage_allocation_options',
+                $columns = 12,
+                $title   = {1972092419, 90001},
+                $onOpen  = Options_Menu_Open,
+              ]" />
+                    </actions>
+                </cue>
+
+                <!-- ── Options menu content ─────────────────────────────────────── -->
+                <cue name="Options_Menu_Open" instantiate="true" version="1">
+                    <conditions>
+                        <event_cue_signalled />
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Get_Config" />
+
+                        <!-- Slider label row (non-selectable) -->
+                        <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" param="table[$selectable = false]" />
+                        <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text"
+                            param="table[
+                $col     = 1,
+                $colSpan = 12,
+                $halign  = 'left',
+                $text    = {1972092419, 90011},
+              ]" />
+
+                        <!-- Slider row -->
+                        <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" />
+                        <signal_cue_instantly cue="md.Simple_Menu_API.Make_Slider"
+                            param="table[
+                $id                  = 'ssa_stock_refresh_interval',
+                $col                 = 1,
+                $colSpan             = 12,
+                $min                 = 1,
+                $max                 = 10,
+                $step                = 1,
+                $start               = $config.$stockRefreshInterval,
+                $suffix              = ' ticks',
+                $onSliderCellConfirm = Handle_Slider_Changed,
+              ]" />
+
+                        <remove_value name="$config" />
+                    </actions>
+                </cue>
+
+                <!-- ── Slider change handler ────────────────────────────────────── -->
+                <cue name="Handle_Slider_Changed" instantiate="true" version="1">
+                    <conditions>
+                        <event_cue_signalled />
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Get_Config" />
+                        <set_value name="$config.$stockRefreshInterval" exact="event.param.$value" />
+                        <remove_value name="$config" />
+                        <!-- Notify the Lua side so it picks up the new value immediately -->
+                        <raise_lua_event name="'SSA.ConfigChanged'" />
+                    </actions>
+                </cue>
+
+            </cues>
+        </cue>
+
+    </cues>
+</mdscript>

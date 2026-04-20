@@ -24,7 +24,10 @@
             <t id="1001">Select a player-owned station to view storage allocation.</t>
             <t id="1002">No cargo storage modules found on this station.</t>
             <!-- slider button fallback -->
-            <t id="1010">Set %</t>
+            <t id="1010">Set Allocation</t>
+            <!-- settings page labels -->
+            <t id="90001">Station Storage Allocation</t>
+            <t id="90011">Stock cache refresh interval \(ticks\)</t>
         </page>
     </add>
 </diff>

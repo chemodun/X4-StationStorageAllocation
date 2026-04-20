@@ -71,6 +71,7 @@ local config = nil
 -- Module state (persists across panel refreshes within the same session).
 local ssa = {
   isV9                = C.GetGameVersion().major >= 9,
+  playerId            = nil,   -- set in init(); used to read MD blackboard config
   expandedType        = nil,   -- transport-type ID string currently expanded, or nil
   editEnabled         = false, -- whether edit mode is active
   wasPausedBeforeEdit = false, -- game was already paused when we entered edit mode
@@ -139,6 +140,17 @@ end
 -- Call after any operation that changes stock limits: Save, Reset All, Auto checkbox toggle.
 local function invalidateLimitsCache()
   ssa.limitsCache = nil
+end
+
+-- Read stockRefreshInterval from the MD-side player.entity.$stationStorageAllocation blackboard.
+-- Called on init and whenever the options menu slider is changed (SSA.ConfigChanged event).
+local function ssaOnConfigChanged()
+  if ssa.playerId == nil then return end
+  local cfg = GetNPCBlackboard(ssa.playerId, "$stationStorageAllocation")
+  if cfg and cfg.stockRefreshInterval then
+    ssa.stockRefreshInterval = math.max(1, math.min(10, tonumber(cfg.stockRefreshInterval) or 3))
+    ssa.stockCache = nil   -- invalidate so next render uses the new interval
+  end
 end
 
 -- ─── data collection (lazy) ──────────────────────────────────────────────────
@@ -961,6 +973,11 @@ local function init()
   menu.registerCallback("info_sub_menu_to_show", ssa.onInfoSubMenuToShow)
   menu.registerCallback("info_sub_menu_is_valid_for", ssa.onInfoSubMenuIsValidFor)
   menu.registerCallback("info_sub_menu_create", ssa.onInfoSubMenuCreate)
+
+  -- Options menu: read initial config and register for live updates.
+  ssa.playerId = ConvertStringTo64Bit(tostring(C.GetPlayerID()))
+  RegisterEvent("SSA.ConfigChanged", ssaOnConfigChanged)
+  ssaOnConfigChanged()
 end
 
 Register_OnLoad_Init(init)

@@ -322,6 +322,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
       width       = config.mapRowHeight,
       height      = config.mapRowHeight,
       cellBGColor = Color["row_background"],
+      active      = not ssa.editEnabled,
     }):setText(isExpanded and "-" or "+", { halign = "center" })
     typeRow[1].handlers.onClick = function()
       if isExpanded then

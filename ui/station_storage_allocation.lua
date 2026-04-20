@@ -355,7 +355,7 @@ local function addInfoTable(inputFrame, infoBorder)
       + 2 * Helper.scaleX(Helper.standardTextOffsetx)
   tableInfo:setColWidth(5, pctColWidth)                              -- stock %
   tableInfo:setColWidthPercent(6, 14)                                 -- limit m³
-  tableInfo:setColWidth(7, config.mapRowHeight)                       -- auto checkbox
+  tableInfo:setColWidth(7, pctColWidth)                       -- auto checkbox
   tableInfo:setColWidth(8, pctColWidth - config.mapRowHeight)         -- limit % (narrow part)
   tableInfo:setColWidth(9, config.mapRowHeight)                       -- focus button
   tableInfo:setDefaultBackgroundColSpan(1, 9)
@@ -442,6 +442,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
   row[6]:createText(ReadText(SSA_PAGE, 112), Helper.headerRowCenteredProperties)  -- Limit, m³
   row[7]:createText(ReadText(SSA_PAGE, 114), Helper.headerRowCenteredProperties)  -- Auto
   row[8]:setColSpan(2):createText(ReadText(SSA_PAGE, 113), Helper.headerRowCenteredProperties)  -- %
+
+  local autoXOffset = (row[7]:getWidth() - config.mapRowHeight) / 2 + Helper.standardContainerOffset -- to center the "Auto" checkbox within its column
 
   -- ── collect storage type data ──
   local typesArray = collectTypeData(station)
@@ -693,10 +695,9 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })
           wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
-          local autoX = (row[7]:getWidth() - config.mapRowHeight) / 2
           local capturedWare = wareData
           wareRow[7]:createCheckBox(wareData.isAuto, { active = true,
-            x = autoX, height = config.mapRowHeight, width = config.mapRowHeight })
+            x = autoXOffset, height = config.mapRowHeight, width = config.mapRowHeight })
           wareRow[7].handlers.onClick = function(_, checked)
             if checked then
               -- Restore auto mode: remove the manual override.

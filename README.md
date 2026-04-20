@@ -26,7 +26,7 @@ Adds a **Storage Allocation** tab to the info panel tab strip in the map menu fo
 
 ## Installation
 
-- **Steam Workshop**: [Station Storage Allocation](https://steamcommunity.com/sharedfiles/filedetails/?id=0) - only for **Game version 8.00** with latest Steam version of the `UI Extensions and HUD` mod (version 80.43 from April 8).
+- **Steam Workshop**: [Station Storage Allocation](https://steamcommunity.com/sharedfiles/filedetails/?id=3710920643) - only for **Game version 8.00** with latest Steam version of the `UI Extensions and HUD` mod (version 80.43 from April 8).
 - **Nexus Mods**: [Station Storage Allocation](https://www.nexusmods.com/x4foundations/mods/2075)
 
 ## Usage

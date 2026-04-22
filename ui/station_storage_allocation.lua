@@ -225,7 +225,7 @@ local function collectWareData(station, typeData)
     cargo = ssa.stockCache.data
   end
 
-  -- Build ware list: cargo wares + override-only wares.
+  -- Build ware list: cargo wares + override-only wares + configured trade wares.
   local wareSet = {}
   for ware in pairs(cargo) do wareSet[ware] = true end
   local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
@@ -236,6 +236,13 @@ local function collectWareData(station, typeData)
       wareSet[ffi.string(overrideBuf[i].ware)] = true
     end
   end
+  -- Include all wares the station produces, consumes, or explicitly trades
+  -- so that zero-stock wares are still shown.
+  local products, allresources, tradewares =
+    GetComponentData(station, "products", "allresources", "tradewares")
+  if products     then for _, ware in ipairs(products)     do wareSet[ware] = true end end
+  if allresources then for _, ware in ipairs(allresources) do wareSet[ware] = true end end
+  if tradewares   then for _, ware in ipairs(tradewares)   do wareSet[ware] = true end end
 
   -- ── Tier 1: group + ware metadata ──
   if not ssa.groupCache then
@@ -382,15 +389,16 @@ local function restoreTableSelection(tableInfo, instance)
   if menu.selectedRows["infotable" .. instance] then
     tableInfo:setSelectedRow(menu.selectedRows["infotable" .. instance])
     menu.selectedRows["infotable" .. instance] = nil
-    if menu.topRows["infotable" .. instance] then
-      tableInfo:setTopRow(menu.topRows["infotable" .. instance])
-      menu.topRows["infotable" .. instance] = nil
-    end
-    if menu.selectedCols["infotable" .. instance] then
-      tableInfo:setSelectedCol(menu.selectedCols["infotable" .. instance])
-      menu.selectedCols["infotable" .. instance] = nil
-    end
   end
+  if menu.topRows["infotable" .. instance] then
+    tableInfo:setTopRow(menu.topRows["infotable" .. instance])
+    menu.topRows["infotable" .. instance] = nil
+  end
+  if menu.selectedCols["infotable" .. instance] then
+    tableInfo:setSelectedCol(menu.selectedCols["infotable" .. instance])
+    menu.selectedCols["infotable" .. instance] = nil
+  end
+
   menu.setrow    = nil
   menu.settoprow = nil
   menu.setcol    = nil
@@ -857,7 +865,7 @@ local function createStorageSubmenu(inputFrame, instance)
     Pause()
   end
 
-  local frameHeight = inputFrame.properties.height
+  local frameHeight = math.floor(inputFrame.properties.height)
   resolveInfoSubmenuObject()
 
   -- Frame border (V9 only).
@@ -919,10 +927,10 @@ local function createStorageSubmenu(inputFrame, instance)
 
     local infoH   = tableInfo:getFullHeight()
     local buttonH = tableButton:getFullHeight()
-    if tableInfo.properties.y + infoH + buttonH + Helper.borderSize + Helper.frameBorder < frameHeight then
+    if tableInfo.properties.y + infoH + buttonH + Helper.borderSize <= frameHeight then
       tableButton.properties.y = tableInfo.properties.y + infoH + Helper.borderSize
     else
-      tableButton.properties.y                = frameHeight - Helper.frameBorder - buttonH
+      tableButton.properties.y                = frameHeight - buttonH
       tableInfo.properties.maxVisibleHeight   = tableButton.properties.y - Helper.borderSize - tableInfo.properties.y
     end
 

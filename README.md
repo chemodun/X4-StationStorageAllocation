@@ -86,7 +86,8 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 
 ### [9.00.02] - 2026-04-22
 
-- **Fixed**: Some zero count wares were not shown in lists.
+- **Fixed**:
+  - Some zero count wares were not shown in lists.
 
 ### [9.00.01] - 2026-04-20
 

@@ -92,7 +92,10 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 
 [size=125][u][9.00.02] - 2026-04-22[/u][/size]
 [list]
-[*] [b]Fixed[/b]: Some zero count wares were not shown in lists.
+[*] [b]Fixed[/b]:
+[list]
+[*] Some zero count wares were not shown in lists.
+[/list]
 [/list]
 [size=125][u][9.00.01] - 2026-04-20[/u][/size]
 [list]

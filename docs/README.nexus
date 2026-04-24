@@ -90,6 +90,13 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 [/list]
 [size=3][u][b]Changelog[/b][/u][/size]
 
+[size=3][u][i][9.00.03] - 2026-04-24[/i][/u][/size]
+[list]
+[*] [b]Fixed[/b]
+[list]
+[*] Issues in high-resolution modes (upper then 1080p)
+[/list]
+[/list]
 [size=3][u][i][9.00.02] - 2026-04-22[/i][/u][/size]
 [list]
 [*] [b]Fixed[/b]:

@@ -84,6 +84,11 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 
 ## Changelog
 
+### [9.00.03] - 2026-04-24
+
+- **Fixed**
+  - Issues in high-resolution modes (upper then 1080p)
+
 ### [9.00.02] - 2026-04-22
 
 - **Fixed**:

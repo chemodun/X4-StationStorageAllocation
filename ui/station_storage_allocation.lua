@@ -370,13 +370,13 @@ local function addInfoTable(inputFrame, infoBorder)
   tableInfo:setColWidthPercent(4, 14)            -- stock m³
   -- % columns: sized to exactly fit "100.0%" at the table font size + left+right cell padding.
   local pctColWidth = math.ceil(C.GetTextWidth("100.0%",
-      Helper.standardFont,
-      Helper.scaleFont(Helper.standardFont, config.mapFontSize)))
+        Helper.standardFont,
+        Helper.scaleFont(Helper.standardFont, config.mapFontSize)))
       + 2 * Helper.scaleX(Helper.standardTextOffsetx)
-  tableInfo:setColWidth(5, pctColWidth)                              -- stock %
+  tableInfo:setColWidth(5, pctColWidth, false)                              -- stock %
   tableInfo:setColWidthPercent(6, 14)                                 -- limit m³
-  tableInfo:setColWidth(7, pctColWidth)                       -- auto checkbox
-  tableInfo:setColWidth(8, pctColWidth - config.mapRowHeight)         -- limit % (narrow part)
+  tableInfo:setColWidth(7, pctColWidth, false)                       -- auto checkbox
+  tableInfo:setColWidth(8, pctColWidth - Helper.scaleX(config.mapRowHeight), false)         -- limit % (narrow part)
   tableInfo:setColWidth(9, config.mapRowHeight)                       -- focus button
   tableInfo:setDefaultBackgroundColSpan(1, 9)
   tableInfo:setDefaultCellProperties("text", { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })

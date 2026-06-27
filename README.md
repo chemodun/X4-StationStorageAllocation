@@ -84,7 +84,7 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 
 ## Changelog
 
-### [9.00.04] - 2026-06-27
+### [9.00.05] - 2026-06-27
 
 - **Changed**
   - On Steam: restricted to game version 9.0 or higher

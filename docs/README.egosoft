@@ -20,7 +20,7 @@ Adds a [b]Storage Allocation[/b] tab to the info panel tab strip in the map menu
 [list]
 [*] Available on Nexus Mods: [url=https://www.nexusmods.com/x4foundations/mods/552]UI Extensions and HUD[/url]
 [/list]
-[*] [b]X4: Foundations[/b]: Version [b]9.00 beta 3[/b] or higher and [b]UI Extensions and HUD[/b]: Version [b]v9.0.0.0.3[/b] or higher by [url=https://next.nexusmods.com/profile/kuertee?gameId=2659]kuertee[/url].
+[*] [b]X4: Foundations[/b]: Version [b]9.00[/b] or higher and [b]UI Extensions and HUD[/b]: Version [b]v9.0.0.5[/b] or higher by [url=https://next.nexusmods.com/profile/kuertee?gameId=2659]kuertee[/url].
 [list]
 [*] Available on Nexus Mods: [url=https://www.nexusmods.com/x4foundations/mods/552]UI Extensions and HUD[/url]
 [/list]
@@ -32,7 +32,7 @@ Adds a [b]Storage Allocation[/b] tab to the info panel tab strip in the map menu
 [/list]
 [size=130][u]Installation[/u][/size]
 [list]
-[*] [b]Steam Workshop[/b]: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710920643]Station Storage Allocation[/url] - only for [b]Game version 8.00[/b] with latest Steam version of the [b]UI Extensions and HUD[/b] mod (version 80.43 from April 8).
+[*] [b]Steam Workshop[/b]: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710920643]Station Storage Allocation[/url] - only for [b]Game version 9.00[/b] with latest Steam version of the [b]UI Extensions and HUD[/b] mod.
 [*] [b]Nexus Mods[/b]: [url=https://www.nexusmods.com/x4foundations/mods/2075]Station Storage Allocation[/url]
 [/list]
 [size=130][u]Usage[/u][/size]
@@ -90,6 +90,13 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 [/list]
 [size=130][u]Changelog[/u][/size]
 
+[size=125][u][9.00.04] - 2026-06-27[/u][/size]
+[list]
+[*] [b]Changed[/b]
+[list]
+[*] On Steam: restricted to game version 9.0 or higher
+[/list]
+[/list]
 [size=125][u][9.00.03] - 2026-04-24[/u][/size]
 [list]
 [*] [b]Fixed[/b]

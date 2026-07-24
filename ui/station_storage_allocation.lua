@@ -797,8 +797,34 @@ local function setupStorageSubmenuRows(tableInfo, station)
   return expandedTypeData, expandedTypeIndividualEdit
 end
 
+-- Reset: individual edit only touches one ware, so scope the reset to it — clearing
+-- every override on the station here would be a much bigger blast radius than the
+-- edit session the player is actually in.
+local function resetIndividualWare(station, wareId)
+  ClearContainerStockLimitOverride(station, wareId)
+  ssa.draftLimits[wareId] = nil
+  invalidateLimitsCache()
+  menu.refreshInfoFrame()
+end
+
+-- Reset All: clear every stock-limit override on this station.
+local function resetAllOverrides(station)
+  local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
+  if overrideCount and overrideCount > 0 then
+    local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
+    overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
+    for i = 0, overrideCount - 1 do
+      ClearContainerStockLimitOverride(station, ffi.string(overrideBuf[i].ware))
+    end
+  end
+  ssa.draftLimits      = {}
+  ssa.activeSliderWare = nil
+  invalidateLimitsCache()
+  menu.refreshInfoFrame()
+end
+
 -- Bottom button bar.
--- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All] [gap] [Save]
+-- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All / Reset] [gap] [Save]
 -- View mode:  [Auto All (col 3, if any manual wares)] [gap] [Edit] -- Edit disabled if nothing is expanded.
 local function addBottomButtons(tableButton, station, expandedTypeData, expandedTypeIndividualEdit)
   if ssa.editEnabled then
@@ -825,22 +851,19 @@ local function addBottomButtons(tableButton, station, expandedTypeData, expanded
       menu.refreshInfoFrame()
     end
 
-    -- Reset All: clear every stock-limit override on this station.
-    row[3]:createButton({ y = Helper.borderSize })
-        :setText(ReadText(SSA_PAGE, 1004), { halign = "center" })
-    row[3].handlers.onClick = function()
-      local overrideCount = tonumber(C.GetNumContainerStockLimitOverrides(station))
-      if overrideCount and overrideCount > 0 then
-        local overrideBuf = ffi.new("UIWareInfo[?]", overrideCount)
-        overrideCount = tonumber(C.GetContainerStockLimitOverrides(overrideBuf, overrideCount, station))
-        for i = 0, overrideCount - 1 do
-          ClearContainerStockLimitOverride(station, ffi.string(overrideBuf[i].ware))
-        end
-      end
-      ssa.draftLimits      = {}
-      ssa.activeSliderWare = nil
-      invalidateLimitsCache()
-      menu.refreshInfoFrame()
+    if expandedTypeIndividualEdit and ssa.activeSliderWare then
+      -- Reset: individual edit only touches one ware, so scope the reset to it —
+      -- clearing every override on the station here would be a much bigger blast
+      -- radius than the edit session the player is actually in.
+      local capturedWareId = ssa.activeSliderWare
+      row[3]:createButton({ y = Helper.borderSize })
+          :setText(ReadText(1001, 3318), { halign = "center" })
+      row[3].handlers.onClick = function() resetIndividualWare(station, capturedWareId) end
+    else
+      -- Reset All: clear every stock-limit override on this station.
+      row[3]:createButton({ y = Helper.borderSize })
+          :setText(ReadText(SSA_PAGE, 1004), { halign = "center" })
+      row[3].handlers.onClick = function() resetAllOverrides(station) end
     end
 
     -- Save: apply draft limits, exit edit mode.

@@ -45,30 +45,22 @@
           <actions>
             <include_actions ref="Get_Config" />
 
-            <!-- Slider label row (non-selectable) -->
-            <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" param="table[$selectable = false]" />
-            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Text"
-              param="table[
-                $col     = 1,
-                $colSpan = 12,
-                $halign  = 'left',
-                $text    = {1972092419, 90011},
-              ]" />
+            <run_actions ref="md.Options_Helper.Add_Title_Row">
+              <param name="title" value="{1972092419, 90001}" />
+              <param name="columns" value="12" />
+            </run_actions>
 
-            <!-- Slider row -->
-            <signal_cue_instantly cue="md.Simple_Menu_API.Add_Row" />
-            <signal_cue_instantly cue="md.Simple_Menu_API.Make_Slider"
-              param="table[
-                $id                  = 'ssa_stock_refresh_interval',
-                $col                 = 1,
-                $colSpan             = 12,
-                $min                 = 1,
-                $max                 = 10,
-                $step                = 1,
-                $start               = $config.$stockRefreshInterval,
-                $suffix              = ' ticks',
-                $onSliderCellConfirm = Handle_Slider_Changed,
-              ]" />
+            <run_actions ref="md.Options_Helper.Add_Slider">
+              <param name="id" value="'stockRefreshInterval'" />
+              <param name="min" value="1" />
+              <param name="max" value="10" />
+              <param name="step" value="1" />
+              <param name="text" value="{1972092419, 90011}" />
+              <param name="colSpan" value="12" />
+              <param name="suffix" value="' ticks'" />
+              <param name="data" value="$config" />
+              <param name="handle" value="Handle_Slider_Changed" />
+            </run_actions>
 
             <remove_value name="$config" />
           </actions>
@@ -81,10 +73,12 @@
           </conditions>
           <actions>
             <include_actions ref="Get_Config" />
-            <set_value name="$config.$stockRefreshInterval" exact="event.param.$value" />
-            <remove_value name="$config" />
+            <set_value name="$resultTable" exact="$config" />
+            <include_actions ref="md.Options_Helper.Process_Slider_Changed" />
+            <remove_value name="$resultTable" />
             <!-- Notify the Lua side so it picks up the new value immediately -->
             <raise_lua_event name="'SSA.ConfigChanged'" />
+            <remove_value name="$config" />
           </actions>
         </cue>
 

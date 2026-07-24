@@ -6,8 +6,13 @@
 --
 -- Storage type header rows  → click row to expand / collapse.
 -- Per-ware rows (expanded)  → stock / limit / allocation % / auto-managed indicator.
--- Edit mode (checkbox)       → percentage slider per ware (or "Set %" button when the
---                              slider-cell limit of 50 would be exceeded).
+-- Edit mode (Edit button)    → percentage slider per ware (batch edit), when the type's
+--                              ware count fits the slider-cell budget.
+-- Over-budget types          → the "Edit" button is hidden; the allocation % in each
+--                              ware row becomes a button instead. Clicking it opens an
+--                              edit session scoped to that single ware (one slider at a
+--                              time) — every other ware stays frozen/read-only until the
+--                              session is saved or cancelled.
 -- Bottom buttons (edit mode) → Save (applies draftLimits) / Reset All (clears overrides).
 --
 -- FFI types and functions used are declared in the ffi.cdef block below.
@@ -77,7 +82,7 @@ local ssa = {
   wasPausedBeforeEdit = false, -- game was already paused when we entered edit mode
   ignoreStock         = false, -- when true: slider min=0, max=full capacity
   draftLimits         = {},    -- [ware_id] = new limit in units (pending, applied on Save)
-  activeSliderWare    = nil,   -- ware that gets a slider when budget would be exceeded
+  activeSliderWare    = nil,   -- ware being individually edited, when its type is over the slider budget
 
   -- *** Three-tier data cache (keyed by expanded station, cleared on switch/tab leave) ***
   -- Tier 1: group + ware metadata — built once per station, never re-read during session.
@@ -420,6 +425,33 @@ end
 
 -- ─── row rendering ───────────────────────────────────────────────────────────
 
+-- Sub-row: "Items:" label in col 2 + item counts for stock and limit.
+-- Shared by view mode and by frozen (non-active) wares during a single-ware edit
+-- (over-budget type). When allowEdit is true (over-budget type, view mode), the
+-- limit — the exact value a single-ware edit changes — becomes the button that
+-- enters that edit; otherwise it's plain dimmed text like the rest of the row.
+local function addItemsSubRow(container, wareData, iconWidth, allowEdit)
+  -- Rows must be selectable to host a button widget — only over-budget/view-mode
+  -- rows (allowEdit) need that; the rest stay unselectable like before.
+  local subRow = container:addRow(allowEdit and true or false, { bgColor = Color["row_background_unselectable"] })
+  subRow[2]:createText(ReadText(SSA_PAGE, 115),
+    { x = iconWidth + config.mapFontSize, halign = "left", color = Color["text_inactive"] })
+  subRow[4]:createText(fmt(wareData.stock),
+    { halign = "right", color = Color["text_inactive"] })
+  if allowEdit then
+    subRow[6]:createButton({ height = config.mapRowHeight })
+        :setText(fmt(wareData.limit), { halign = "right" })
+    subRow[6].handlers.onClick = function()
+      enterEditMode()
+      ssa.activeSliderWare = wareData.id
+      menu.refreshInfoFrame()
+    end
+  else
+    subRow[6]:createText(fmt(wareData.limit),
+      { halign = "right", color = Color["text_inactive"] })
+  end
+end
+
 -- Render all storage-type header rows (and expanded ware rows) into tableInfo.
 local function setupStorageSubmenuRows(tableInfo, station)
   -- ── station title + focus button ──
@@ -494,7 +526,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
   -- the remainder is available for editable ware-allocation sliders.
   local wareSliderBudget = SLIDER_MAX - #typesArray
 
-  local expandedTypeData = nil   -- captures typeData for the expanded type (returned to caller)
+  local expandedTypeData      = nil     -- captures typeData for the expanded type (returned to caller)
+  local expandedTypeOverBudget = false  -- true when that type has more wares than the slider budget fits
 
   -- ── render each storage type ──
   for _, typeData in ipairs(typesArray) do
@@ -535,6 +568,11 @@ local function setupStorageSubmenuRows(tableInfo, station)
     if isExpanded then
       expandedTypeData = typeData
       collectWareData(station, typeData)
+      -- Over budget: this type alone has more wares than the slider-cell budget can fit.
+      -- The "Edit" button is hidden for it; individual % buttons (view mode) drive editing
+      -- one ware at a time instead of a single batch edit session.
+      local typeOverBudget = #typeData.wares > wareSliderBudget
+      expandedTypeOverBudget = typeOverBudget
       -- Auto-enable ignoreStock if any ware's saved limit is less than its current stock
       -- (limit < stock means the slider min would exceed its start, causing a validation error).
       if ssa.editEnabled and not ssa.ignoreStock then
@@ -545,7 +583,6 @@ local function setupStorageSubmenuRows(tableInfo, station)
           end
         end
       end
-      local sliderCount = 0  -- tracks how many editable sliders have been placed
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
       local freeM3 = math.max(0, typeData.capacity - typeData.spaceUsed)
@@ -580,10 +617,10 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local gameLimitM3 = wareData.limit * wareData.volume
           local gamePct     = (typeData.capacity > 0 and gameLimitM3 > 0)
               and math.min(100, gameLimitM3 / typeData.capacity * 100)
-              or  0
+              or 0
           local gameStockPct = (gameLimitM3 > 0)
               and math.min(100, stockM3 / gameLimitM3 * 100)
-              or  0
+              or 0
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
@@ -594,9 +631,10 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[6]:createText(fmt(gameLimitM3), { halign = "right", color = Color["text_inactive"] })
           wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right", color = Color["text_inactive"] })
 
-          -- Determine whether this ware can get an editable slider.
-          local useSlider = (sliderCount < wareSliderBudget)
-              or (ssa.activeSliderWare == wareData.id)
+          -- Determine whether this ware gets an editable slider this render:
+          --   normal type (fits the slider budget): every ware is editable (batch edit).
+          --   over-budget type: only the single ware being individually edited.
+          local useSlider = (not typeOverBudget) or (ssa.activeSliderWare == wareData.id)
 
           -- min/max depend on ignoreStock mode:
           --   normal: min = current stock (can't go below what's stored), max = stock + free space
@@ -611,10 +649,8 @@ local function setupStorageSubmenuRows(tableInfo, station)
               or  math.floor((stockM3 + freeM3) / vol))
               or 0
 
-          local sliderRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
-
           if useSlider then
-            sliderCount = sliderCount + 1
+            local sliderRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
 
             sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
               { x = iconWidth + config.mapFontSize, halign = "left" })
@@ -707,16 +743,9 @@ local function setupStorageSubmenuRows(tableInfo, station)
             sliderRow[8]:setColSpan(2):createText(pctText,
               { halign = "right" })
           else
-            -- Over slider budget: button to force-assign a slider to this ware.
-            sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
-              { halign = "left" })
-            local capturedWare = wareData
-            sliderRow[3]:setColSpan(5):createButton({ height = config.mapRowHeight })
-                :setText(ReadText(SSA_PAGE, 1010), { halign = "center" })
-            sliderRow[3].handlers.onClick = function()
-              ssa.activeSliderWare = capturedWare.id
-              menu.refreshInfoFrame()
-            end
+            -- Over-budget type, this ware isn't the one being edited: keep the same
+            -- "Items:" sub-row shown in view mode, just frozen (no slider/button).
+            addItemsSubRow(wareGroupContainer, wareData, iconWidth)
           end
 
         else
@@ -726,6 +755,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               and math.min(100, stockM3 / limitM3 * 100)
               or  0
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
+          local capturedWare = wareData
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left" }
@@ -734,7 +764,6 @@ local function setupStorageSubmenuRows(tableInfo, station)
           wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })
           wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
-          local capturedWare = wareData
           wareRow[7]:createCheckBox(wareData.isAuto, { active = true,
             x = autoXOffset, height = mapRowHeightScaled, width = mapRowHeightScaled, scaling = false })
           wareRow[7].handlers.onClick = function(_, checked)
@@ -750,25 +779,21 @@ local function setupStorageSubmenuRows(tableInfo, station)
             menu.refreshInfoFrame()
           end
 
-          -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
-          local subRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
-          subRow[2]:createText(ReadText(SSA_PAGE, 115),
-            { x = iconWidth + config.mapFontSize, halign = "left", color = Color["text_inactive"] })
-          subRow[4]:createText(fmt(wareData.stock),
-            { halign = "right", color = Color["text_inactive"] })
-          subRow[6]:createText(fmt(wareData.limit),
-            { halign = "right", color = Color["text_inactive"] })
+          -- Too many wares to give everyone a slider at once: the item-count limit
+          -- (the exact value a single-ware edit changes) becomes the entry point
+          -- into that edit (see useSlider above).
+          addItemsSubRow(wareGroupContainer, wareData, iconWidth, typeOverBudget)
         end
       end  -- for each ware
     end  -- if isExpanded
   end  -- for each type
-  return expandedTypeData
+  return expandedTypeData, expandedTypeOverBudget
 end
 
 -- Bottom button bar.
 -- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All] [gap] [Save]
 -- View mode:  [Auto All (col 3, if any manual wares)] [gap] [Edit] -- Edit disabled if nothing is expanded.
-local function addBottomButtons(tableButton, station, expandedTypeData)
+local function addBottomButtons(tableButton, station, expandedTypeData, expandedTypeOverBudget)
   if ssa.editEnabled then
     -- "Ignore stock" checkbox row: when checked, sliders allow limits below current stock.
     local checkRow = tableButton:addRow("info_checkbox_ignorestock", { fixed = true })
@@ -854,7 +879,11 @@ local function addBottomButtons(tableButton, station, expandedTypeData)
     end
 
     -- Edit: enter edit mode, aligned at the Save (col 5) position.
-    -- Disabled unless a storage type is currently expanded.
+    -- Disabled unless a storage type is currently expanded; hidden entirely when the
+    -- expanded type has more wares than the slider-cell budget fits — editing there
+    -- goes through the per-ware "%" buttons (row col 8) instead.
+    if expandedTypeOverBudget then return end
+
     local canEdit = (ssa.expandedType ~= nil)
     row[5]:createButton({ y = Helper.borderSize, active = canEdit })
         :setText(ReadText(SSA_PAGE, 1005), { halign = "center" })
@@ -906,7 +935,7 @@ local function createStorageSubmenu(inputFrame, instance)
     row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1), Helper.headerRowCenteredProperties)
   end
 
-  local expandedTypeData = setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
+  local expandedTypeData, expandedTypeOverBudget = setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
 
   restoreTableSelection(tableInfo, instance)
 
@@ -938,7 +967,7 @@ local function createStorageSubmenu(inputFrame, instance)
     tableButton:setColWidthPercent(4, 12)
     -- col 5 fills the remainder (~25%)
 
-    addBottomButtons(tableButton, menu.infoSubmenuObject, expandedTypeData)
+    addBottomButtons(tableButton, menu.infoSubmenuObject, expandedTypeData, expandedTypeOverBudget)
 
     local infoH   = tableInfo:getFullHeight()
     local buttonH = tableButton:getFullHeight()

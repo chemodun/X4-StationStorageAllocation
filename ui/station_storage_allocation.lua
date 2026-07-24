@@ -393,8 +393,8 @@ local function addInfoTable(inputFrame, infoBorder)
   tableInfo:setColWidth(4, math.floor(remaining * 14 / 54), false)          -- stock m³
   tableInfo:setColWidth(6, math.floor(remaining * 14 / 54), false)          -- limit m³
   tableInfo:setDefaultBackgroundColSpan(1, 9)
-  tableInfo:setDefaultCellProperties("text", { minRowHeight = mapRowHeightScaled, fontsize = config.mapFontSize })
-  tableInfo:setDefaultCellProperties("button", { height = mapRowHeightScaled })
+  tableInfo:setDefaultCellProperties("text", { minRowHeight = config.mapRowHeight, fontsize = config.mapFontSize })
+  tableInfo:setDefaultCellProperties("button", { height = config.mapRowHeight })
   return tableInfo
 end
 
@@ -480,7 +480,6 @@ local function setupStorageSubmenuRows(tableInfo, station)
 
   local mapRowHeightScaled = Helper.scaleX(config.mapRowHeight)
   local autoXOffset = (row[7]:getWidth() - mapRowHeightScaled) / 2 -- to center the "Auto" checkbox within its column
-  local mapFontSizeScaled = Helper.scaleX(config.mapFontSize)
 
   -- ── collect storage type data ──
   local typesArray = collectTypeData(station)
@@ -568,7 +567,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local groupRow = tableInfo:addRow(false, { bgColor = Color["row_title_background"] })
           groupRow[2]:setColSpan(8):createText(
             ReadText(ref[1], ref[2]),
-            { halign = "center", fontsize = Helper.scaleX(config.mapFontSize), scaling = false }
+            { halign = "center" }
           )
         end
         -- Pre-compute m³ values.
@@ -588,12 +587,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
-            { halign = "left", fontsize = mapFontSizeScaled, scaling = false }
+            { halign = "left" }
           )
-          wareRow[4]:createText(fmt(stockM3), { halign = "right", color = Color["text_inactive"], fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right", color = Color["text_inactive"], fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[6]:createText(fmt(gameLimitM3), { halign = "right", color = Color["text_inactive"], fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right", color = Color["text_inactive"], fontsize = mapFontSizeScaled, scaling = false })
+          wareRow[4]:createText(fmt(stockM3), { halign = "right", color = Color["text_inactive"] })
+          wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right", color = Color["text_inactive"] })
+          wareRow[6]:createText(fmt(gameLimitM3), { halign = "right", color = Color["text_inactive"] })
+          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", gamePct), { halign = "right", color = Color["text_inactive"] })
 
           -- Determine whether this ware can get an editable slider.
           local useSlider = (sliderCount < wareSliderBudget)
@@ -618,18 +617,17 @@ local function setupStorageSubmenuRows(tableInfo, station)
             sliderCount = sliderCount + 1
 
             sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
-              { x = iconWidth + config.mapFontSize, halign = "left", fontsize = mapFontSizeScaled, scaling = false })
+              { x = iconWidth + config.mapFontSize, halign = "left" })
             local capturedWare = wareData
             local capturedType = typeData
             sliderRow[3]:setColSpan(5):createSliderCell({
-              height      = mapRowHeightScaled,
+              height      = config.mapRowHeight,
               min         = minSelectItems,
               max         = maxSelectItems,
               maxSelect   = maxSelectItems,
               start       = currentLimitItems,
               readOnly    = false,
               forceArrows = true,
-              scaling     = false,
             })
             sliderRow[3].handlers.onSliderCellActivated   = function() menu.noupdate = true end
             sliderRow[3].handlers.onSliderCellDeactivated = function()
@@ -707,14 +705,14 @@ local function setupStorageSubmenuRows(tableInfo, station)
             end
             local pctText = (pctColor ~= "") and (pctColor .. draftPctStr .. "\027X") or draftPctStr
             sliderRow[8]:setColSpan(2):createText(pctText,
-              { halign = "right", fontsize = mapFontSizeScaled, scaling = false })
+              { halign = "right" })
           else
             -- Over slider budget: button to force-assign a slider to this ware.
             sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
-              { halign = "left", fontsize = mapFontSizeScaled, scaling = false })
+              { halign = "left" })
             local capturedWare = wareData
             sliderRow[3]:setColSpan(5):createButton({ height = config.mapRowHeight })
-                :setText(ReadText(SSA_PAGE, 1010), { halign = "center", fontsize = mapFontSizeScaled, scaling = false })
+                :setText(ReadText(SSA_PAGE, 1010), { halign = "center" })
             sliderRow[3].handlers.onClick = function()
               ssa.activeSliderWare = capturedWare.id
               menu.refreshInfoFrame()
@@ -730,12 +728,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           wareRow[2]:setColSpan(2):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
-            { halign = "left", fontsize = mapFontSizeScaled, scaling = false }
+            { halign = "left" }
           )
-          wareRow[4]:createText(fmt(stockM3), { halign = "right", fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right", fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[6]:createText(fmt(limitM3), { halign = "right", fontsize = mapFontSizeScaled, scaling = false })
-          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", wareData.allocPct), { halign = "right", fontsize = mapFontSizeScaled, scaling = false })
+          wareRow[4]:createText(fmt(stockM3), { halign = "right" })
+          wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
+          wareRow[6]:createText(fmt(limitM3), { halign = "right" })
+          wareRow[8]:setColSpan(2):createText(string.format("%.1f%%", wareData.allocPct), { halign = "right" })
           local capturedWare = wareData
           wareRow[7]:createCheckBox(wareData.isAuto, { active = true,
             x = autoXOffset, height = mapRowHeightScaled, width = mapRowHeightScaled, scaling = false })
@@ -755,11 +753,11 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Row 2 (sub-row): "Items:" label in col 2 + dimmed item counts for stock and limit.
           local subRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
           subRow[2]:createText(ReadText(SSA_PAGE, 115),
-            { x = iconWidth + config.mapFontSize, halign = "left", fontsize = mapFontSizeScaled, scaling = false, color = Color["text_inactive"] })
+            { x = iconWidth + config.mapFontSize, halign = "left", color = Color["text_inactive"] })
           subRow[4]:createText(fmt(wareData.stock),
-            { halign = "right", fontsize = mapFontSizeScaled, scaling = false, color = Color["text_inactive"] })
+            { halign = "right", color = Color["text_inactive"] })
           subRow[6]:createText(fmt(wareData.limit),
-            { halign = "right", fontsize = mapFontSizeScaled, scaling = false, color = Color["text_inactive"] })
+            { halign = "right", color = Color["text_inactive"] })
         end
       end  -- for each ware
     end  -- if isExpanded

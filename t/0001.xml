@@ -28,6 +28,7 @@
             <!-- settings page labels -->
             <t id="90001">Station Storage Allocation</t>
             <t id="90011">Stock cache refresh interval \(ticks\)</t>
+            <t id="90012">Always edit ware allocation limits individually \(one slider at a time, even under the slider budget\)</t>
         </page>
     </add>
 </diff>

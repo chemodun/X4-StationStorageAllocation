@@ -83,6 +83,7 @@ local ssa = {
   ignoreStock         = false, -- when true: slider min=0, max=full capacity
   draftLimits         = {},    -- [ware_id] = new limit in units (pending, applied on Save)
   activeSliderWare    = nil,   -- ware being individually edited, when its type is over the slider budget
+  alwaysIndividualEdit = false, -- option: force single-ware edit mode even under the slider budget
 
   -- *** Three-tier data cache (keyed by expanded station, cleared on switch/tab leave) ***
   -- Tier 1: group + ware metadata — built once per station, never re-read during session.
@@ -148,15 +149,19 @@ local function invalidateLimitsCache()
   ssa.limitsCache = nil
 end
 
--- Read stockRefreshInterval from the MD-side player.entity.$stationStorageAllocation blackboard.
--- Called on init and whenever the options menu slider is changed (SSA.ConfigChanged event).
+-- Read config from the MD-side player.entity.$stationStorageAllocation blackboard.
+-- Called on init and whenever the options menu is changed (SSA.ConfigChanged event).
 local function ssaOnConfigChanged()
   if ssa.playerId == nil then return end
   local cfg = GetNPCBlackboard(ssa.playerId, "$stationStorageAllocation")
-  if cfg and cfg.stockRefreshInterval then
+  if cfg == nil then return end
+  if cfg.stockRefreshInterval then
     ssa.stockRefreshInterval = math.max(1, math.min(10, tonumber(cfg.stockRefreshInterval) or 3))
     ssa.stockCache = nil   -- invalidate so next render uses the new interval
   end
+  -- Checkbox values round-trip through options_helper as int 0/1 once toggled
+  -- (still MD boolean false until first touched) — accept either representation.
+  ssa.alwaysIndividualEdit = (cfg.alwaysIndividualEdit == 1) or (cfg.alwaysIndividualEdit == true)
 end
 
 -- ─── data collection (lazy) ──────────────────────────────────────────────────
@@ -526,8 +531,9 @@ local function setupStorageSubmenuRows(tableInfo, station)
   -- the remainder is available for editable ware-allocation sliders.
   local wareSliderBudget = SLIDER_MAX - #typesArray
 
-  local expandedTypeData      = nil     -- captures typeData for the expanded type (returned to caller)
-  local expandedTypeOverBudget = false  -- true when that type has more wares than the slider budget fits
+  local expandedTypeData = nil -- captures typeData for the expanded type (returned to caller)
+  -- true when that type is edited one ware at a time (over the slider budget, or forced via Options)
+  local expandedTypeIndividualEdit = false
 
   -- ── render each storage type ──
   for _, typeData in ipairs(typesArray) do
@@ -568,11 +574,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
     if isExpanded then
       expandedTypeData = typeData
       collectWareData(station, typeData)
-      -- Over budget: this type alone has more wares than the slider-cell budget can fit.
-      -- The "Edit" button is hidden for it; individual % buttons (view mode) drive editing
-      -- one ware at a time instead of a single batch edit session.
-      local typeOverBudget = #typeData.wares > wareSliderBudget
-      expandedTypeOverBudget = typeOverBudget
+      -- Over budget: this type alone has more wares than the slider-cell budget can fit,
+      -- or the player opted to always edit one ware at a time (Options menu checkbox).
+      -- Either way, the "Edit" button is hidden; the item-limit button (view mode) drives
+      -- editing one ware at a time instead of a single batch edit session.
+      local typeIndividualEdit = ssa.alwaysIndividualEdit or (#typeData.wares > wareSliderBudget)
+      expandedTypeIndividualEdit = typeIndividualEdit
       -- Auto-enable ignoreStock if any ware's saved limit is less than its current stock
       -- (limit < stock means the slider min would exceed its start, causing a validation error).
       if ssa.editEnabled and not ssa.ignoreStock then
@@ -634,7 +641,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Determine whether this ware gets an editable slider this render:
           --   normal type (fits the slider budget): every ware is editable (batch edit).
           --   over-budget type: only the single ware being individually edited.
-          local useSlider = (not typeOverBudget) or (ssa.activeSliderWare == wareData.id)
+          local useSlider = (not typeIndividualEdit) or (ssa.activeSliderWare == wareData.id)
 
           -- min/max depend on ignoreStock mode:
           --   normal: min = current stock (can't go below what's stored), max = stock + free space
@@ -782,18 +789,18 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Too many wares to give everyone a slider at once: the item-count limit
           -- (the exact value a single-ware edit changes) becomes the entry point
           -- into that edit (see useSlider above).
-          addItemsSubRow(wareGroupContainer, wareData, iconWidth, typeOverBudget)
+          addItemsSubRow(wareGroupContainer, wareData, iconWidth, typeIndividualEdit)
         end
       end  -- for each ware
     end  -- if isExpanded
   end  -- for each type
-  return expandedTypeData, expandedTypeOverBudget
+  return expandedTypeData, expandedTypeIndividualEdit
 end
 
 -- Bottom button bar.
 -- Edit mode:  [Ignore stock checkbox row] then [Cancel] [gap] [Reset All] [gap] [Save]
 -- View mode:  [Auto All (col 3, if any manual wares)] [gap] [Edit] -- Edit disabled if nothing is expanded.
-local function addBottomButtons(tableButton, station, expandedTypeData, expandedTypeOverBudget)
+local function addBottomButtons(tableButton, station, expandedTypeData, expandedTypeIndividualEdit)
   if ssa.editEnabled then
     -- "Ignore stock" checkbox row: when checked, sliders allow limits below current stock.
     local checkRow = tableButton:addRow("info_checkbox_ignorestock", { fixed = true })
@@ -882,7 +889,7 @@ local function addBottomButtons(tableButton, station, expandedTypeData, expanded
     -- Disabled unless a storage type is currently expanded; hidden entirely when the
     -- expanded type has more wares than the slider-cell budget fits — editing there
     -- goes through the per-ware "%" buttons (row col 8) instead.
-    if expandedTypeOverBudget then return end
+    if expandedTypeIndividualEdit then return end
 
     local canEdit = (ssa.expandedType ~= nil)
     row[5]:createButton({ y = Helper.borderSize, active = canEdit })
@@ -935,7 +942,7 @@ local function createStorageSubmenu(inputFrame, instance)
     row[1]:setColSpan(9):createText(ReadText(SSA_PAGE, 1), Helper.headerRowCenteredProperties)
   end
 
-  local expandedTypeData, expandedTypeOverBudget = setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
+  local expandedTypeData, expandedTypeIndividualEdit = setupStorageSubmenuRows(tableInfo, menu.infoSubmenuObject)
 
   restoreTableSelection(tableInfo, instance)
 
@@ -967,7 +974,7 @@ local function createStorageSubmenu(inputFrame, instance)
     tableButton:setColWidthPercent(4, 12)
     -- col 5 fills the remainder (~25%)
 
-    addBottomButtons(tableButton, menu.infoSubmenuObject, expandedTypeData, expandedTypeOverBudget)
+    addBottomButtons(tableButton, menu.infoSubmenuObject, expandedTypeData, expandedTypeIndividualEdit)
 
     local infoH   = tableInfo:getFullHeight()
     local buttonH = tableButton:getFullHeight()

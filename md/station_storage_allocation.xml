@@ -9,13 +9,19 @@
         <!-- Loads player.entity.$stationStorageAllocation, creating it with defaults if
              absent. Sets $config as a local alias. Callers must remove_value
              $config when done. -->
-        <library name="Get_Config" purpose="include_actions" version="1">
+        <library name="Get_Config" purpose="include_actions" version="2">
           <actions>
             <do_if value="@player.entity.$stationStorageAllocation == null">
-              <set_value name="player.entity.$stationStorageAllocation" exact="table[ $stockRefreshInterval = 3]" />
+              <set_value name="player.entity.$stationStorageAllocation" exact="table[
+                $stockRefreshInterval  = 3,
+                $alwaysIndividualEdit  = false,
+              ]" />
             </do_if>
             <do_if value="player.entity.$stationStorageAllocation.$stockRefreshInterval? == false">
               <set_value name="player.entity.$stationStorageAllocation.$stockRefreshInterval" exact="3" />
+            </do_if>
+            <do_if value="player.entity.$stationStorageAllocation.$alwaysIndividualEdit? == false">
+              <set_value name="player.entity.$stationStorageAllocation.$alwaysIndividualEdit" exact="false" />
             </do_if>
             <set_value name="$config" exact="player.entity.$stationStorageAllocation" />
           </actions>
@@ -62,6 +68,17 @@
               <param name="handle" value="Handle_Slider_Changed" />
             </run_actions>
 
+            <include_actions ref="md.Options_Helper.Add_Empty_Row" />
+
+            <run_actions ref="md.Options_Helper.Add_Checkbox">
+              <param name="id" value="'alwaysIndividualEdit'" />
+              <param name="col" value="1" />
+              <param name="textColSpan" value="11" />
+              <param name="text" value="{1972092419, 90012}" />
+              <param name="data" value="$config" />
+              <param name="handle" value="Handle_Checkbox_Changed" />
+            </run_actions>
+
             <remove_value name="$config" />
           </actions>
         </cue>
@@ -75,6 +92,22 @@
             <include_actions ref="Get_Config" />
             <set_value name="$resultTable" exact="$config" />
             <include_actions ref="md.Options_Helper.Process_Slider_Changed" />
+            <remove_value name="$resultTable" />
+            <!-- Notify the Lua side so it picks up the new value immediately -->
+            <raise_lua_event name="'SSA.ConfigChanged'" />
+            <remove_value name="$config" />
+          </actions>
+        </cue>
+
+        <!-- ── Checkbox change handler ──────────────────────────────────── -->
+        <cue name="Handle_Checkbox_Changed" instantiate="true" version="1">
+          <conditions>
+            <event_cue_signalled />
+          </conditions>
+          <actions>
+            <include_actions ref="Get_Config" />
+            <set_value name="$resultTable" exact="$config" />
+            <include_actions ref="md.Options_Helper.Process_Checkbox_Changed" />
             <remove_value name="$resultTable" />
             <!-- Notify the Lua side so it picks up the new value immediately -->
             <raise_lua_event name="'SSA.ConfigChanged'" />

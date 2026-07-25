@@ -617,6 +617,12 @@ local function setupStorageSubmenuRows(tableInfo, station)
         local stockM3 = wareData.stock * wareData.volume
         local limitM3 = wareData.displayLimit * wareData.volume
 
+        local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
+        wareRow[1]:setColSpan(3):createText(
+          "\027[" .. wareData.icon .. "] " .. wareData.name,
+          { halign = "left" }
+        )
+
         if ssa.editEnabled then
           -- ── Edit mode ──
           -- Row 1: shows GAME (saved) limit/%, not draft — draft is only in the slider row.
@@ -627,11 +633,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           local gameStockPct = (gameLimitM3 > 0)
               and math.min(100, stockM3 / gameLimitM3 * 100)
               or 0
-          local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
-          wareRow[1]:setColSpan(3):createText(
-            "\027[" .. wareData.icon .. "] " .. wareData.name,
-            { halign = "left" }
-          )
+
           wareRow[4]:createText(fmt(stockM3), { halign = "right", color = Color["text_inactive"] })
           wareRow[5]:createText(string.format("%.1f%%", gameStockPct), { halign = "right", color = Color["text_inactive"] })
           wareRow[6]:createText(fmt(gameLimitM3), { halign = "right", color = Color["text_inactive"] })
@@ -759,13 +761,9 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Row 1: icon+name | stock m³ | stock% | limit m³ | limit% | auto checkbox
           local stockPct = (limitM3 > 0)
               and math.min(100, stockM3 / limitM3 * 100)
-              or  0
-          local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
+              or 0
           local capturedWare = wareData
-          wareRow[1]:setColSpan(3):createText(
-            "\027[" .. wareData.icon .. "] " .. wareData.name,
-            { halign = "left" }
-          )
+
           wareRow[4]:createText(fmt(stockM3), { halign = "right" })
           wareRow[5]:createText(string.format("%.1f%%", stockPct), { halign = "right" })
           wareRow[6]:createText(fmt(limitM3), { halign = "right" })

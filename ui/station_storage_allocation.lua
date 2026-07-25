@@ -435,12 +435,12 @@ end
 -- (over-budget type). When allowEdit is true (over-budget type, view mode), the
 -- limit — the exact value a single-ware edit changes — becomes the button that
 -- enters that edit; otherwise it's plain dimmed text like the rest of the row.
-local function addItemsSubRow(container, wareData, iconWidth, allowEdit)
+local function addItemsSubRow(container, wareData, allowEdit)
   -- Rows must be selectable to host a button widget — only over-budget/view-mode
   -- rows (allowEdit) need that; the rest stay unselectable like before.
   local subRow = container:addRow(allowEdit and true or false, { bgColor = Color["row_background_unselectable"] })
   subRow[2]:createText(ReadText(SSA_PAGE, 115),
-    { x = iconWidth + config.mapFontSize, halign = "left", color = Color["text_inactive"] })
+    { halign = "left", color = Color["text_inactive"] })
   subRow[4]:createText(fmt(wareData.stock),
     { halign = "right", color = Color["text_inactive"] })
   if allowEdit then
@@ -593,7 +593,6 @@ local function setupStorageSubmenuRows(tableInfo, station)
 
       -- Total free space in this storage type (fixed physical fact, unaffected by limit edits).
       local freeM3 = math.max(0, typeData.capacity - typeData.spaceUsed)
-      local iconWidth = menu.getShipIconWidth()
       local currentGroup = nil        -- tracks the last rendered group
       local wareGroupContainer = tableInfo  -- v8: add rows directly to tableInfo
       -- Vanilla text refs: 1=Products{1001,1610}, 2=Intermediate{1001,6100},
@@ -629,7 +628,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               and math.min(100, stockM3 / gameLimitM3 * 100)
               or 0
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
-          wareRow[2]:setColSpan(2):createText(
+          wareRow[1]:setColSpan(3):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left" }
           )
@@ -660,7 +659,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
             local sliderRow = wareGroupContainer:addRow(false, { bgColor = Color["row_background_unselectable"] })
 
             sliderRow[2]:createText(ReadText(SSA_PAGE, 115),
-              { x = iconWidth + config.mapFontSize, halign = "left" })
+              { halign = "left" })
             local capturedWare = wareData
             local capturedType = typeData
             sliderRow[3]:setColSpan(5):createSliderCell({
@@ -752,7 +751,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           else
             -- Over-budget type, this ware isn't the one being edited: keep the same
             -- "Items:" sub-row shown in view mode, just frozen (no slider/button).
-            addItemsSubRow(wareGroupContainer, wareData, iconWidth)
+            addItemsSubRow(wareGroupContainer, wareData)
           end
 
         else
@@ -763,7 +762,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
               or  0
           local wareRow = wareGroupContainer:addRow(true, { bgColor = Color["row_background_unselectable"] })
           local capturedWare = wareData
-          wareRow[2]:setColSpan(2):createText(
+          wareRow[1]:setColSpan(3):createText(
             "\027[" .. wareData.icon .. "] " .. wareData.name,
             { halign = "left" }
           )
@@ -789,7 +788,7 @@ local function setupStorageSubmenuRows(tableInfo, station)
           -- Too many wares to give everyone a slider at once: the item-count limit
           -- (the exact value a single-ware edit changes) becomes the entry point
           -- into that edit (see useSlider above).
-          addItemsSubRow(wareGroupContainer, wareData, iconWidth, typeIndividualEdit)
+          addItemsSubRow(wareGroupContainer, wareData, typeIndividualEdit)
         end
       end  -- for each ware
     end  -- if isExpanded

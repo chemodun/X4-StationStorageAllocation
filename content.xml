@@ -51,6 +51,9 @@
   <!-- Turkish -->
   <text language="90"
     description="Harita menüsünde oyuncuya ait istasyonlar için bilgi paneline bir Depolama Tahsisi sekmesi ekler. Tür bazında depolama kapasitesini ve kullanımını mal başına genişletilebilir tahsisatla gösterir ve haritadan ayrılmadan mal başına depolama limitlerini ayarlamanıza olanak tanır."></text>
+  <!-- Bulgarian -->
+  <text language="359"
+    description="Добавя раздел Разпределение на съхранението към информационния панел за станции, собственост на играча, в менюто на картата. Показва капацитета на съхранение и използването по тип с разширяемо разпределение по стоки и позволява да се регулират лимитите за съхранение по стоки без да се напуска картата."></text>
   <!-- Ukrainian -->
   <text language="380"
     description="Додає вкладку Розподіл зберігання до інформаційної панелі для станцій гравця в меню карти. Показує місткість зберігання та використання за типами з розгортуваним розподілом на товар і дозволяє регулювати ліміти зберігання на товар без виходу з карти."></text>

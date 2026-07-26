@@ -9,6 +9,7 @@ Adds a [b]Storage Allocation[/b] tab to the info panel tab strip in the map menu
 [*] [b]Per-ware view[/b]: Each ware row shows current stock (m³ and %), the active limit (m³ and %), and an [b]Auto[/b] checkbox. Toggling the checkbox immediately switches between auto-managed and manually pinned limits without entering edit mode.
 [*] [b]Auto All button[/b]: When viewing an expanded type, a single button clears all manual overrides for that type at once, restoring auto management.
 [*] [b]Edit mode[/b]: Click [b]Edit[/b] (requires an expanded type) to enter edit mode. The game pauses automatically. Each ware gets an allocation slider to adjust its limit. Changes are previewed live and are only applied on [b]Save[/b].
+[*] [b]Single-ware edit mode[/b]: For stations with too many wares under one type to give each one its own slider at once (a hard engine limit), or when enabled for all types via Extension options, the [b]Edit[/b] button is replaced by per-ware editing: click a ware's item-limit value to open a slider for just that ware, leaving every other ware untouched until you Save or Cancel.
 [*] [b]Rebalancing[/b]: When a slider is moved, the limits of other wares are proportionally reduced to keep the total within the type's capacity.
 [*] [b]Ignore stock checkbox[/b]: Allows setting a limit below the current stock (useful for planned reductions).
 [*] [b]Ware groups[/b]: Wares are split into [b]Products[/b], [b]Intermediates[/b], [b]Resources[/b], and [b]Trade Wares[/b] based on production and consumption at the station.
@@ -69,12 +70,28 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 [*] [b]Save[/b]: applies all slider values and exits edit mode (game resumes).
 [*] [b]Cancel[/b]: discards all changes and exits edit mode (game resumes).
 [/list]
+[h2]Single-ware edit mode[/h2]
+
+
+Some stations can hold more wares under one type than the game's slider-widget engine limit allows to display at once. For those types (and for every type, if you've enabled [b]Always edit ware allocation individually[/b] in Extension options), the [b]Edit[/b] button is hidden entirely - editing works one ware at a time instead:
+[list]
+[*] In the normal (view) state, each ware's item-count limit - the small dimmed number under [b]Items:[/b] - becomes a clickable button.
+[/list]
+  [img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/single_ware_edit_mode_view_mode.png[/img]
+[list][*] Clicking it pauses the game and opens a slider for [b]that ware only[/b]. Every other ware in the type stays read-only; there's no way to switch to a different ware mid-session.
+[/list]
+  [img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/single_ware_edit_mode_edit_mode.png[/img]
+[list]
+[*] The bottom bar shows [b]Cancel[/b] / [b]Reset[/b] / [b]Save[/b], same as normal edit mode, except [b]Reset[/b] only clears the override for the ware currently being edited - not the whole station.
+[*] To edit a different ware, [b]Save[/b] or [b]Cancel[/b] first, then click that ware's item-limit value.
+[/list]
 [h2]Extension options[/h2]
 
 [b]Options Menu > Extension options > Station Storage Allocation[/b]:
 
 [img]https://raw.githubusercontent.com/chemodun/X4-StationStorageAllocation/refs/heads/main/docs/images/options.png[/img]
 [list]
+[*] [b]Always edit ware allocation limits individually[/b] (default: off): Forces single-ware edit mode for every storage type - even ones with few enough wares to normally use the all-at-once slider view.
 [*] [b]Stock cache refresh interval[/b] (1-10, default 3): UI ticks before stock values are re-read from the game. Lower = more up-to-date, higher = less CPU usage.
 [/list]
 [h2][b]Credits[/b][/h2]
@@ -90,6 +107,18 @@ A slider appears for each ware in the expanded type. Slide to adjust the allocat
 [/list]
 [h2][b]Changelog[/b][/h2]
 
+[h2][9.00.06] - 2026-07-26[/h2]
+[list]
+[*] [b]Fixed[/b]
+[list]
+[*] Issues in some high-resolution modes (upper then 1080p) with high UI Scale levels.
+[*] Issue with reaching the limit of the game's slider-widget engine when editing a type with too many wares to show at once.
+[/list]
+[*] [b]Added[/b]
+[list]
+[*] Option to always edit ware allocation limits individually, even for types with few enough wares to normally use the all-at-once slider view.
+[/list]
+[/list]
 [h2][9.00.05] - 2026-06-27[/h2]
 [list]
 [*] [b]Changed[/b]

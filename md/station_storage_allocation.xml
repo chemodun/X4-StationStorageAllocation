@@ -51,10 +51,18 @@
           <actions>
             <include_actions ref="Get_Config" />
 
-            <run_actions ref="md.Options_Helper.Add_Title_Row">
-              <param name="title" value="{1972092419, 90001}" />
-              <param name="columns" value="12" />
+            <include_actions ref="md.Options_Helper.Add_Empty_Row" />
+
+            <run_actions ref="md.Options_Helper.Add_Checkbox">
+              <param name="id" value="'alwaysIndividualEdit'" />
+              <param name="col" value="1" />
+              <param name="textColSpan" value="11" />
+              <param name="text" value="{1972092419, 90012}" />
+              <param name="data" value="$config" />
+              <param name="handle" value="Handle_Checkbox_Changed" />
             </run_actions>
+
+            <include_actions ref="md.Options_Helper.Add_Empty_Row" />
 
             <run_actions ref="md.Options_Helper.Add_Slider">
               <param name="id" value="'stockRefreshInterval'" />
@@ -66,17 +74,6 @@
               <param name="suffix" value="' ticks'" />
               <param name="data" value="$config" />
               <param name="handle" value="Handle_Slider_Changed" />
-            </run_actions>
-
-            <include_actions ref="md.Options_Helper.Add_Empty_Row" />
-
-            <run_actions ref="md.Options_Helper.Add_Checkbox">
-              <param name="id" value="'alwaysIndividualEdit'" />
-              <param name="col" value="1" />
-              <param name="textColSpan" value="11" />
-              <param name="text" value="{1972092419, 90012}" />
-              <param name="data" value="$config" />
-              <param name="handle" value="Handle_Checkbox_Changed" />
             </run_actions>
 
             <remove_value name="$config" />

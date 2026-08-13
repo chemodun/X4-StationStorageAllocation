@@ -3,12 +3,12 @@
   id="ws_3710920643"
   name="Station Storage Allocation"
   author="Chem O`Dun"
-  version="90006"
-  date="2026-07-26"
+  version="90007"
+  date="2026-08-13"
   save="false"
   sync="false"
   enabled="1"
-  lastupdate="1785090304"
+  lastupdate="1786639611"
   description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map.">
   <text language="7"
     description="Adds a Storage Allocation tab to the info panel for player-owned stations in the map menu. Shows storage capacity and usage per type with expandable per-ware allocation and lets you adjust per-ware storage limits without leaving the map."></text>

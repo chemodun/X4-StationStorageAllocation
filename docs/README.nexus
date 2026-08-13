@@ -107,6 +107,13 @@ Some stations can hold more wares under one type than the game's slider-widget e
 [/list]
 [size=3][u][b]Changelog[/b][/u][/size]
 
+[size=3][u][i][9.00.07] - 2026-08-13[/i][/u][/size]
+[list]
+[*] [b]Fixed[/b]
+[list]
+[*] Fixed missed text items.
+[/list]
+[/list]
 [size=3][u][i][9.00.06] - 2026-07-26[/i][/u][/size]
 [list]
 [*] [b]Fixed[/b]

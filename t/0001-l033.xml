@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Allocation de stockage de la station</t>
       <t id="90011">Intervalle de rafraîchissement du cache de stock \(ticks\)</t>
+      <t id="90012">Toujours modifier les limites d'allocation des marchandises individuellement \(un curseur à la fois, même en dessous du budget de curseurs\)</t>
     </page>
   </add>
 </diff>

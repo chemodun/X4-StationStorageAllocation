@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Přidělování úložiště stanice</t>
       <t id="90011">Interval obnovy mezipaměti skladu \(tiky\)</t>
+      <t id="90012">Vždy upravovat limity přidělení zboží jednotlivě \(jeden posuvník po druhém, i pod limitem posuvníků\)</t>
     </page>
   </add>
 </diff>

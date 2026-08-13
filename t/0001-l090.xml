@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">İstasyon Depolama Tahsisi</t>
       <t id="90011">Stok önbellek yenileme aralığı \(tik\)</t>
+      <t id="90012">Mal tahsis limitlerini her zaman tek tek düzenle \(kaydırıcı bütçesinin altında olsa bile aynı anda bir kaydırıcı\)</t>
     </page>
   </add>
 </diff>

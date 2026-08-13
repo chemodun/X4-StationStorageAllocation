@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Przydział przechowalni stacji</t>
       <t id="90011">Interwał odświeżania pamięci podręcznej zapasów \(tiki\)</t>
+      <t id="90012">Zawsze edytuj limity przydziału towarów pojedynczo \(jeden suwak naraz, nawet poniżej limitu suwaków\)</t>
     </page>
   </add>
 </diff>

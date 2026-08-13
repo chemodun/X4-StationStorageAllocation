@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Asignación de almacenamiento de estación</t>
       <t id="90011">Intervalo de actualización del caché de stock \(ticks\)</t>
+      <t id="90012">Editar siempre los límites de asignación de mercancías individualmente \(un deslizador a la vez, incluso por debajo del presupuesto de deslizadores\)</t>
     </page>
   </add>
 </diff>

@@ -101,6 +101,11 @@ Some stations can hold more wares under one type than the game's slider-widget e
 
 ## Changelog
 
+### [9.00.07] - 2026-08-13
+
+- **Fixed**
+  - Fixed missed text items.
+
 ### [9.00.06] - 2026-07-26
 
 - **Fixed**

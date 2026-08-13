@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Stationslagerplatzzuweisung</t>
       <t id="90011">Lager-Cache-Aktualisierungsintervall \(Ticks\)</t>
+      <t id="90012">Warenzuweisungsgrenzen immer einzeln bearbeiten \(ein Schieberegler nach dem anderen, auch unterhalb des Schieberegler-Budgets\)</t>
     </page>
   </add>
 </diff>

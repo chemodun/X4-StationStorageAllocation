@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Allocazione spazio di stazione</t>
       <t id="90011">Intervallo di aggiornamento della cache delle scorte \(tick\)</t>
+      <t id="90012">Modifica sempre i limiti di allocazione delle merci individualmente \(un cursore alla volta, anche sotto il budget dei cursori\)</t>
     </page>
   </add>
 </diff>

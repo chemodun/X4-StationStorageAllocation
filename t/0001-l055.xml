@@ -29,6 +29,7 @@
       <!-- settings page labels -->
       <t id="90001">Alocação de armazenamento de estação</t>
       <t id="90011">Intervalo de atualização do cache de estoque \(ticks\)</t>
+      <t id="90012">Sempre editar os limites de alocação de mercadorias individualmente \(um controle deslizante por vez, mesmo abaixo do orçamento de controles deslizantes\)</t>
     </page>
   </add>
 </diff>

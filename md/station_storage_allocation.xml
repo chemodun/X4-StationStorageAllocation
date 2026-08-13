@@ -44,7 +44,7 @@
         </cue>
 
         <!-- ── Options menu content ─────────────────────────────────────── -->
-        <cue name="Options_Menu_Open" instantiate="true" version="1">
+        <cue name="Options_Menu_Open" instantiate="true" version="2">
           <conditions>
             <event_cue_signalled />
           </conditions>
@@ -71,7 +71,6 @@
               <param name="step" value="1" />
               <param name="text" value="{1972092419, 90011}" />
               <param name="colSpan" value="12" />
-              <param name="suffix" value="' ticks'" />
               <param name="data" value="$config" />
               <param name="handle" value="Handle_Slider_Changed" />
             </run_actions>
